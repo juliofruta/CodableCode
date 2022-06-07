@@ -6,7 +6,7 @@ A String value indicating the generated Swift code that implements a Codable str
 
 ## Declaration 
 ```
-var codableCode: String { get }
+var codableCode: String? { get }
 ```
 
 ## See Also
