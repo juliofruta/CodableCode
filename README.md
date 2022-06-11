@@ -4,20 +4,6 @@ A String value indicating the generated Swift code that implements a Codable str
 
 -------------------------
 
-## Declaration 
-```
-var codableCode: String? { get }
-```
-
-## See Also
-
-### Throwing an error and setting a type name
-```
-func makeCodableCode(name:) throws
-```
-
----------------------------
-
 The following code:
 
 ```
@@ -41,4 +27,18 @@ struct <#SomeType#>: Codable {
     let greeting: String
     let instructions: [String]
 }
+```
+
+-------------------------
+
+## Declaration 
+```
+var codableCode: String? { get }
+```
+
+## See Also
+
+### Throwing an error and setting a type name
+```
+func makeCodableCode(name:) throws
 ```
