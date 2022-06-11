@@ -15,3 +15,30 @@ var codableCode: String? { get }
 ```
 func makeCodableCode(name:) throws
 ```
+
+---------------------------
+
+The following code:
+
+```
+print("""
+{
+  "greeting": "Welcome to quicktype!",
+  "instructions": [
+    "Type or paste JSON here",
+    "Or choose a sample above",
+    "quicktype will generate code in your",
+    "chosen language to parse the sample data"
+  ]
+}
+""".codableCode!)
+```
+
+Outputs:
+
+```
+struct <#SomeType#>: Codable {
+    let greeting: String
+    let instructions: [String]
+}
+```
