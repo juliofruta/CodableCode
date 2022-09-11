@@ -35,12 +35,13 @@ extension String {
     // 3. optionals everywhere
     enum Preference {
         case enumWithAssociatedTypes
+        case optionalsWhereRequired
     }
     
     func makeCodableTypeArray(anyArray: [Any], key: String, margin: String, preference: Preference = .enumWithAssociatedTypes) throws -> String {
-        var types = Set<String>()
+        var typesInArray = Set<String>()
         var existingTypes = Set<String>()
-        var structCodeSet = Set<String>()
+        var structOptionCodeSet = Set<String>()
         
         try anyArray.forEach { jsonObject in
             
@@ -59,67 +60,100 @@ extension String {
             case _ as Int:
                 type = "Int"
             case let dictionary as [String: Any]:
-                let objectData = try JSONSerialization.data(withJSONObject: dictionary, options: [])
-                let objectString = String(data: objectData, encoding: .utf8)!
-                let dummyTypeImplementation = try objectString.codableCode(name: "TYPE", margin: "")
-                
-                // if the existing type does not contain the dummy type implementation
-                if !existingTypes.contains(dummyTypeImplementation) {
-                    // insert it
-                    existingTypes.insert(dummyTypeImplementation)
-                    // keep a count
-                    if existingTypes.count == 1 {
-                        type = key.asType
-                    } else {
-                        type = key.asType + "\(existingTypes.count)"
+                switch preference {
+                case .enumWithAssociatedTypes:
+                    let objectData = try JSONSerialization.data(withJSONObject: dictionary, options: [])
+                    let objectString = String(data: objectData, encoding: .utf8)!
+                    let typeImplementation = try objectString.codableCode(name: "TYPE IMPLEMENTATION USED FOR COMPARISON", margin: "") // used to see if it's in the set of options already
+                    
+                    // if the existing type does not contain the dummy type implementation
+                    if !existingTypes.contains(typeImplementation) {
+                        // insert it
+                        existingTypes.insert(typeImplementation)
+                        // keep a count
+                        if existingTypes.count == 1 {
+                            type = key.asType
+                        } else {
+                            type = key.asType + "\(existingTypes.count)"
+                        }
+                        // and get the actual implementation
+                        let optionTypeImplementation = try objectString.codableCode(name: type!, margin: margin + identation)
+                        structOptionCodeSet.insert(optionTypeImplementation)
                     }
-                    // and get the actual implementation
-                    let typeImplementation = try objectString.codableCode(name: type!, margin: margin + identation)
-                    structCodeSet.insert(typeImplementation)
+                case .optionalsWhereRequired:
+                    // ??? implement me!
+                    // podria comparar los strings
+                    // o las llaves y la diferencia hacerla optional
+                    // si lo hago con los stirngs lo bueno es que podria reutilizar el codigo de arriba? no se
+                    // es que en este scope solo se de un tipo.
+                    break
+                    
                 }
             default:
                 type = ""
                 assertionFailure() // unhandled case
             }
             if let unwrappedType = type {
-                types.insert(unwrappedType)
+                typesInArray.insert(unwrappedType)
             }
         }
         
         // write type
         var swiftCode = ""
         
-        if types.isEmpty {
+        if typesInArray.isEmpty { // if it's empty then anything could come in there.
             swiftCode += "[Any]"
-        } else if types.count == 1 {
-            swiftCode += "[\(types.first!)]"
-        } else {
+        } else if typesInArray.count == 1 { // if it's only one then we assume that there can only be elements of this type.
+            swiftCode += "[\(typesInArray.first!)]"
+        } else { // if there's more...
             switch preference {
             case .enumWithAssociatedTypes:
-                // create enum with associated types
+                // write that the type is the enum
                 swiftCode += "\(key.asType)Options"
                 swiftCode.lineBreak()
                 swiftCode.lineBreak()
+
+                // create enum with associated types
                 swiftCode += margin + identation + "enum \(key.asType)Options: Codable {"
                 
-                types.forEach { type in
+                // types are options
+                let options = typesInArray
+                
+                options.forEach { option in
                     swiftCode.lineBreak()
                     // enum associatedTypes
-                    swiftCode += margin + identation + identation + "case \(type.asSymbol)(\(type))"
+                    swiftCode += margin + identation + identation + "case \(option.asSymbol)(\(option))"
                 }
                 
                 swiftCode.lineBreak()
                 swiftCode += margin + identation + "}"
+                
+                // write the implementation of the different options
+                structOptionCodeSet.forEach { implementation in
+                    swiftCode.lineBreak()
+                    swiftCode.lineBreak()
+                    swiftCode += implementation
+                    swiftCode.lineBreak()
+                }
+                
+            case .optionalsWhereRequired:
+
+                // add the key as the type
+                swiftCode += "\(key.asType)"
+                
+                // and then write the implementation
+                
+                // diff the types
+                // get the lines that dissappear or appear
+                // filter the lines that have let <symbol>: <type>
+                // get the :<type> that dissapear by diffing
+                // build type
+                
+                break
             }
         }
         
-        // write implementations
-        structCodeSet.forEach { implementation in
-            swiftCode.lineBreak()
-            swiftCode.lineBreak()
-            swiftCode += implementation            
-            swiftCode.lineBreak()
-        }
+
         
         return swiftCode
     }
