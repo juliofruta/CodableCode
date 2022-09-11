@@ -4,6 +4,8 @@ enum Error: Swift.Error {
     case invalidData
 }
 
+let identation = "    "
+
 extension String {
     
     var asType: String {
@@ -22,7 +24,7 @@ extension String {
         self = self + "\n"
     }
     
-    func makeCodableTypeArray(anyArray: [Any], key: String, identation: String) throws -> String {
+    func makeCodableTypeArray(anyArray: [Any], key: String, margin: String) throws -> String {
         var types = Set<String>()
         var existingTypes = Set<String>()
         var structCodeSet = Set<String>()
@@ -46,16 +48,20 @@ extension String {
             case let dictionary as [String: Any]:
                 let objectData = try JSONSerialization.data(withJSONObject: dictionary, options: [])
                 let objectString = String(data: objectData, encoding: .utf8)!
-                let dummyTypeImplementation = try objectString.codableCode(name: "TYPE", identation: identation + "    ")
+                let dummyTypeImplementation = try objectString.codableCode(name: "TYPE", margin: "")
                 
+                // if the existing type does not contain the dummy type implementation
                 if !existingTypes.contains(dummyTypeImplementation) {
+                    // insert it
                     existingTypes.insert(dummyTypeImplementation)
+                    // keep a count
                     if existingTypes.count == 1 {
                         type = key.asType
                     } else {
                         type = key.asType + "\(existingTypes.count)"
                     }
-                    let typeImplementation = try objectString.codableCode(name: type!, identation: identation + "    ")
+                    // and get the actual implementation
+                    let typeImplementation = try objectString.codableCode(name: type!, margin: margin + identation)
                     structCodeSet.insert(typeImplementation)
                 }
             default:
@@ -81,16 +87,16 @@ extension String {
             // create enum
             swiftCode.lineBreak()
             swiftCode.lineBreak()
-            swiftCode += identation + "    enum \(key.asType)Options: Codable {"
+            swiftCode += margin + identation + "enum \(key.asType)Options: Codable {"
             
             types.forEach { type in
                 swiftCode.lineBreak()
                 // enum associatedTypes
-                swiftCode += identation + "        case \(type.asSymbol)(\(type))"
+                swiftCode += margin + identation + identation + "case \(type.asSymbol)(\(type))"
             }
             
             swiftCode.lineBreak()
-            swiftCode += identation + "    }"
+            swiftCode += margin + "}"
         }
         
         // write implementations
@@ -98,6 +104,16 @@ extension String {
             swiftCode.lineBreak()
             swiftCode.lineBreak()
             swiftCode += implementation
+            
+            
+            
+//            implementation
+//                .split(separator: "\n")
+//                .forEach { line in
+//                    swiftCode += margin + line
+//                    swiftCode.lineBreak()
+//                }
+            
             swiftCode.lineBreak()
         }
         
@@ -108,19 +124,19 @@ extension String {
     /// - Parameter json: A valid JSON string
     /// - Throws: Not sure if it should throw right now. We can check if the JSON is valid inside
     /// - Returns: The string of the type produced by the JSON
-    public func codableCode(name: String, identation: String = "") throws -> String {
-        var swiftCode = identation
-        swiftCode += "struct \(name.asType): Codable {"
+    public func codableCode(name: String, margin: String = "") throws -> String {
+        var swiftCode = ""
+        swiftCode += margin + "struct \(name.asType): Codable {"
         guard let data = data(using: .utf8) else {
             throw Error.invalidData
-        }
+        }        
         if let dictionary = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
             try dictionary
                 .sorted(by: { $0.0 < $1.0 })
                 .forEach { pair in
                 let (key, value) = pair
                 swiftCode.lineBreak()
-                swiftCode += identation + "    let \(key.asSymbol): "
+                swiftCode += margin + identation + "let \(key.asSymbol): "
                 switch value {
                 case _ as Bool:
                     swiftCode += "Bool"
@@ -138,10 +154,10 @@ extension String {
                     swiftCode += "\(key.asType)"
                     swiftCode.lineBreak()
                     swiftCode.lineBreak()
-                    swiftCode += identation + (try objectString.codableCode(name: key, identation: identation + "    "))
+                    swiftCode += try objectString.codableCode(name: key, margin: margin + identation)
                     swiftCode.lineBreak()
                 case let anyArray as [Any]:
-                    swiftCode += try makeCodableTypeArray(anyArray: anyArray, key: key, identation: identation)
+                    swiftCode += try makeCodableTypeArray(anyArray: anyArray, key: key, margin: margin)
                 // TODO: Add more cases like dates
                 default:
                     swiftCode += "Any"
@@ -149,7 +165,7 @@ extension String {
             }
         }
         swiftCode.lineBreak()
-        swiftCode += identation + "}"
+        swiftCode += margin + "}"
         return swiftCode
     }
     
