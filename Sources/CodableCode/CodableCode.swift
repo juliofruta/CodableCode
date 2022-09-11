@@ -84,6 +84,36 @@ extension String {
             
             swiftCode += "\(key.asType)Options"
             
+            // TODO: Instead of enum refactor to use optionals where needed.
+            // Make this system as anti fragile as possible! The more automated this is the better. I don't want to update the Bitso API manually ever again!
+            // Build Swift Build package plugin
+            // use diffing algorithm to introduce optionals?
+            // strategies:
+            // create
+            // 1. enum withassociated types
+            // 2. optionals where needed
+            // 3. optionals everywhere
+            
+            // add support to automatically fix when reserved keywords have reserved words for example:
+            // let return: Return // this does not compile and is part of the bitso api
+            // so add support for coding keys
+//
+//            struct Landmark: Codable {
+//                var name: String
+//                var foundingYear: Int
+//                var location: Coordinate
+//                var vantagePoints: [Coordinate]
+//
+//                enum CodingKeys: String, CodingKey {
+//                    case name = "return"
+//                    case foundingYear = "founding_date"
+//
+//                    case location
+//                    case vantagePoints
+//                }
+//            }
+            
+            
             // create enum
             swiftCode.lineBreak()
             swiftCode.lineBreak()
