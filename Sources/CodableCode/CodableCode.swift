@@ -96,24 +96,14 @@ extension String {
             }
             
             swiftCode.lineBreak()
-            swiftCode += margin + "}"
+            swiftCode += margin + identation + "}"
         }
         
         // write implementations
         structCodeSet.forEach { implementation in
             swiftCode.lineBreak()
             swiftCode.lineBreak()
-            swiftCode += implementation
-            
-            
-            
-//            implementation
-//                .split(separator: "\n")
-//                .forEach { line in
-//                    swiftCode += margin + line
-//                    swiftCode.lineBreak()
-//                }
-            
+            swiftCode += implementation            
             swiftCode.lineBreak()
         }
         
