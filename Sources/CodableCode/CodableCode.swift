@@ -39,7 +39,7 @@ extension String {
         case optionalsWhereRequired // in development...
     }
     
-    func makeCodableTypeArray(anyArray: [Any], key: String, margin: String, preference: Preference = .enumWithAssociatedTypes) throws -> String {
+    func makeCodableTypeArray(anyArray: [Any], key: String, margin: String, preference: Preference = .optionalsWhereRequired) throws -> String {
         var typesInArray = Set<String>()
         var uniqueTypes = Set<String>()
         var optionTypeImplementations = Set<String>()
@@ -165,6 +165,9 @@ extension String {
                             
                             diff.removals.map { "- \($0)" }.forEach { print($0) }
                             diff.insertions.map { "+ \($0)" }.forEach { print($0) }
+                            
+                            
+                            // si veo un let removido. hacerlo opcional? no necesariamente? todavia no termino de pensar este algorithm
                         } else {
                             fatalError()
                         }
