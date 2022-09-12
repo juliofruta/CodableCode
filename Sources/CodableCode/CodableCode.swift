@@ -39,7 +39,7 @@ extension String {
         case optionalsWhereRequired // in development...
     }
     
-    func makeCodableTypeArray(anyArray: [Any], key: String, margin: String, preference: Preference = .optionalsWhereRequired) throws -> String {
+    func makeCodableTypeArray(anyArray: [Any], key: String, margin: String, preference: Preference = .enumWithAssociatedTypes) throws -> String {
         var typesInArray = Set<String>()
         var uniqueTypes = Set<String>()
         var optionTypeImplementations = Set<String>()
@@ -140,10 +140,6 @@ extension String {
                 // filter the lines that have let <symbol>: <type>
                 // get the :<type> that dissapear by diffing
                 // build type
-//
-//                var diff = CollectionDifference<[(Int, String)]>([])
-//                var additions = [String]()
-//                var removals = [String]()
                 
                 uniqueTypes
                     .map { $0.components(separatedBy: "\n") } // separate by lines and get array of arrays
@@ -153,10 +149,10 @@ extension String {
                         let lhs = Array(pair[0])
                         let rhs = Array(pair[1])
                         
-                        if #available(macOS 10.15, *) {
+                        if #available(macOS 10.15, *) { // hate this... want to avoid it.
                             
                             // getting a diff for each case
-                            let diff = lhs.difference(from: rhs, by: { _, _ in return true })
+                            let diff = lhs.difference(from: rhs, by: { _, _ in return true }) // ??? what is this param?
                             
                             print("lhs")
                             lhs.forEach { print("\($0)") }
@@ -167,7 +163,7 @@ extension String {
                             diff.insertions.map { "+ \($0)" }.forEach { print($0) }
                             
                             
-                            // si veo un let removido. hacerlo opcional? no necesariamente? todavia no termino de pensar este algorithm
+                            // si veo un let removido. hacerlo opcional? no necesariamente? todavia no termino de pensar este algorithm los pasos de arribe lo mas probable es que no funcionen.
                         } else {
                             fatalError()
                         }
