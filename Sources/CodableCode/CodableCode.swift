@@ -39,7 +39,7 @@ extension String {
         case optionalsWhereRequired // in development...
     }
     
-    func makeCodableTypeArray(anyArray: [Any], key: String, margin: String, preference: Preference = .optionalsWhereRequired) throws -> String {
+    func makeCodableTypeArray(anyArray: [Any], key: String, margin: String, preference: Preference = .enumWithAssociatedTypes) throws -> String {
         var typesInArray = Set<String>()
         var uniqueTypes = Set<String>()
         var optionTypeImplementations = Set<String>()
@@ -128,6 +128,8 @@ extension String {
                 
             case .optionalsWhereRequired:
 
+                fatalError("optionalsWhereRequired in development. use  enum with associated types instead")
+                
                 // add the key as the type
                 swiftCode += "\(key.asType)"
                 
@@ -144,11 +146,7 @@ extension String {
 //                var removals = [String]()
                 
                 uniqueTypes
-                    .map {
-                        $0
-                            .components(separatedBy: "\n") // [[line:String]]
-//                            .map { $0.enumerated() } // [[(index, line:String)]]
-                    }
+                    .map { $0.components(separatedBy: "\n") } // separate by lines and get array of arrays
                     .combinations(ofCount: 2)
                     .forEach { pair in
                         
@@ -170,10 +168,7 @@ extension String {
                         } else {
                             fatalError()
                         }
-                        
                     }
-                
-                
             }
         }
         
