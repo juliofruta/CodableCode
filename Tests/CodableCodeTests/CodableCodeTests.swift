@@ -177,7 +177,7 @@ final class CodableCodeTests: XCTestCase {
             }]
         }
         """
-        let nsstring = NSString(string: string.codableCode!)
+        let nsstring = NSString(string: try! string.codableCode(name: "test"))
         print(nsstring)
     }
 }

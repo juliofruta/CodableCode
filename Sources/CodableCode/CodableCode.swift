@@ -1,4 +1,5 @@
 import Foundation
+import Algorithms
 
 enum Error: Swift.Error {
     case invalidData
@@ -35,13 +36,13 @@ extension String {
     // 3. optionals everywhere
     enum Preference {
         case enumWithAssociatedTypes
-        case optionalsWhereRequired
+        case optionalsWhereRequired // in development...
     }
     
-    func makeCodableTypeArray(anyArray: [Any], key: String, margin: String, preference: Preference = .enumWithAssociatedTypes) throws -> String {
+    func makeCodableTypeArray(anyArray: [Any], key: String, margin: String, preference: Preference = .optionalsWhereRequired) throws -> String {
         var typesInArray = Set<String>()
-        var existingTypes = Set<String>()
-        var structOptionCodeSet = Set<String>()
+        var uniqueTypes = Set<String>()
+        var optionTypeImplementations = Set<String>()
         
         try anyArray.forEach { jsonObject in
             
@@ -60,34 +61,23 @@ extension String {
             case _ as Int:
                 type = "Int"
             case let dictionary as [String: Any]:
-                switch preference {
-                case .enumWithAssociatedTypes:
-                    let objectData = try JSONSerialization.data(withJSONObject: dictionary, options: [])
-                    let objectString = String(data: objectData, encoding: .utf8)!
-                    let typeImplementation = try objectString.codableCode(name: "TYPE IMPLEMENTATION USED FOR COMPARISON", margin: "") // used to see if it's in the set of options already
-                    
-                    // if the existing type does not contain the dummy type implementation
-                    if !existingTypes.contains(typeImplementation) {
-                        // insert it
-                        existingTypes.insert(typeImplementation)
-                        // keep a count
-                        if existingTypes.count == 1 {
-                            type = key.asType
-                        } else {
-                            type = key.asType + "\(existingTypes.count)"
-                        }
-                        // and get the actual implementation
-                        let optionTypeImplementation = try objectString.codableCode(name: type!, margin: margin + identation)
-                        structOptionCodeSet.insert(optionTypeImplementation)
+                let objectData = try JSONSerialization.data(withJSONObject: dictionary, options: [])
+                let objectString = String(data: objectData, encoding: .utf8)!
+                let typeImplementation = try objectString.codableCode(name: "TYPE IMPLEMENTATION USED FOR COMPARISON", margin: "") // used to see if it's in the set of options already
+                
+                // if the existing type does not contain the dummy type implementation
+                if !uniqueTypes.contains(typeImplementation) {
+                    // insert it
+                    uniqueTypes.insert(typeImplementation)
+                    // keep a count
+                    if uniqueTypes.count == 1 {
+                        type = key.asType
+                    } else {
+                        type = key.asType + "\(uniqueTypes.count)"
                     }
-                case .optionalsWhereRequired:
-                    // ??? implement me!
-                    // podria comparar los strings
-                    // o las llaves y la diferencia hacerla optional
-                    // si lo hago con los stirngs lo bueno es que podria reutilizar el codigo de arriba? no se
-                    // es que en este scope solo se de un tipo.
-                    break
-                    
+                    // and get the actual implementation
+                    let optionTypeImplementation = try objectString.codableCode(name: type!, margin: margin + identation)
+                    optionTypeImplementations.insert(optionTypeImplementation)
                 }
             default:
                 type = ""
@@ -129,7 +119,7 @@ extension String {
                 swiftCode += margin + identation + "}"
                 
                 // write the implementation of the different options
-                structOptionCodeSet.forEach { implementation in
+                optionTypeImplementations.forEach { implementation in
                     swiftCode.lineBreak()
                     swiftCode.lineBreak()
                     swiftCode += implementation
@@ -148,8 +138,42 @@ extension String {
                 // filter the lines that have let <symbol>: <type>
                 // get the :<type> that dissapear by diffing
                 // build type
+//
+//                var diff = CollectionDifference<[(Int, String)]>([])
+//                var additions = [String]()
+//                var removals = [String]()
                 
-                break
+                uniqueTypes
+                    .map {
+                        $0
+                            .components(separatedBy: "\n") // [[line:String]]
+//                            .map { $0.enumerated() } // [[(index, line:String)]]
+                    }
+                    .combinations(ofCount: 2)
+                    .forEach { pair in
+                        
+                        let lhs = Array(pair[0])
+                        let rhs = Array(pair[1])
+                        
+                        if #available(macOS 10.15, *) {
+                            
+                            // getting a diff for each case
+                            let diff = lhs.difference(from: rhs, by: { _, _ in return true })
+                            
+                            print("lhs")
+                            lhs.forEach { print("\($0)") }
+                            print("rhs")
+                            rhs.forEach { print("\($0)") }
+                            
+                            diff.removals.map { "- \($0)" }.forEach { print($0) }
+                            diff.insertions.map { "+ \($0)" }.forEach { print($0) }
+                        } else {
+                            fatalError()
+                        }
+                        
+                    }
+                
+                
             }
         }
         
