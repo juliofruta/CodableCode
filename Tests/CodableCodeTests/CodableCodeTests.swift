@@ -90,18 +90,14 @@ final class CodableCodeTests: XCTestCase {
     }
     
     func testH() throws {
-        print("""
+        // TODO: Fix this!
+        let a = """
         {
-            "a": [{ "a": "ok" }, { "a": "ok", "b": "ok" }, { "c":
-                [
-                                 [{ "a": "ok" }, { "a": "ok", "b": "ok" }, { "c":
-                                    [
-                                    
-                                    ]
-                                }]
-                ]
-            }]
+            "a": [{ "a": "ok" }, { "a": "ok", "b": "ok" }, { "c": [{ "a": "ok" }, { "a": "ok", "b": "ok" }, { "c": "ok"}]}]
         }
-        """.codableCode)
+        """.codableCode
+        for line in a!.split(separator: "\n") {
+            print(line)
+        }
     }
 }
