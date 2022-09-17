@@ -131,7 +131,8 @@ extension String {
                 fatalError("optionalsWhereRequired in development. use  enum with associated types instead")
                 
                 // add the key as the type
-                swiftCode += "\(key.asType)"
+                swiftCode += "[\(key.asType)]"
+                swiftCode.lineBreak()
                 
                 // and then write the implementation
                 
@@ -140,34 +141,70 @@ extension String {
                 // filter the lines that have let <symbol>: <type>
                 // get the :<type> that dissapear by diffing
                 // build type
-                
+                                
+                var changes = Set<String>()
                 uniqueTypes
                     .map { $0.components(separatedBy: "\n") } // separate by lines and get array of arrays
                     .combinations(ofCount: 2)
                     .forEach { pair in
-                        
                         let lhs = Array(pair[0])
                         let rhs = Array(pair[1])
                         
                         if #available(macOS 10.15, *) { // hate this... want to avoid it.
-                            
                             // getting a diff for each case
-                            let diff = lhs.difference(from: rhs, by: { _, _ in return true }) // ??? what is this param?
-                            
-                            print("lhs")
-                            lhs.forEach { print("\($0)") }
-                            print("rhs")
-                            rhs.forEach { print("\($0)") }
-                            
-                            diff.removals.map { "- \($0)" }.forEach { print($0) }
-                            diff.insertions.map { "+ \($0)" }.forEach { print($0) }
-                            
-                            
-                            // si veo un let removido. hacerlo opcional? no necesariamente? todavia no termino de pensar este algorithm los pasos de arribe lo mas probable es que no funcionen.
+                            let diff = lhs.difference(from: rhs)
+                            let printDiffingInfo = false
+                            if printDiffingInfo {
+                                print("lhs")
+                                lhs.forEach { print("\($0)") }
+                                print("rhs")
+                                rhs.forEach { print("\($0)") }
+                                diff.removals.map { "- \($0)" }.forEach { print($0) }
+                                diff.insertions.map { "+ \($0)" }.forEach { print($0) }
+                            }
+        
+                            diff.removals.forEach {
+                                switch $0 {
+                                case .insert(offset: _, element: let element, associatedWith: _):
+                                    changes.insert(element)
+                                case .remove(offset: _, element: let element, associatedWith: _):
+                                    changes.insert(element)
+                                }
+                            }
+                            diff.insertions.forEach {
+                                switch $0 {
+                                case .insert(offset: _, element: let element, associatedWith: _):
+                                    changes.insert(element)
+                                case .remove(offset: _, element: let element, associatedWith: _):
+                                    changes.insert(element)
+                                }
+                            }
                         } else {
                             fatalError()
                         }
                     }
+                
+                let aTypeImplementation = uniqueTypes.first!
+                
+                var lines = aTypeImplementation.split(separator: "\n").map { String.init($0) }
+                
+                changes.sorted().forEach { change in
+                    var lineChanged = change
+                    // remove repeated lines
+                    lines.removeAll(where: { $0 == change })
+                    // add sintactic suggar "?"
+                    lineChanged += "?"
+                    lines.insert(lineChanged, at: lines.count - 1 )
+                }
+                
+                // write code
+                lines.removeFirst()
+                lines.insert(margin + "struct \(key.asType): Codable {", at: 0)
+                let structImplementation = lines
+                    .map { margin + identation + $0 }
+                    .joined(separator: "\n")
+                
+                swiftCode += structImplementation
             }
         }
         
