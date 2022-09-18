@@ -7,7 +7,7 @@ final class CodableCodeTests: XCTestCase {
     }
     
     func testA() throws {
-        XCTAssertEqual("""
+        test("""
             {
               "greeting": "Welcome to quicktype!",
               "instructions": [
@@ -17,7 +17,7 @@ final class CodableCodeTests: XCTestCase {
                 "chosen language to parse the sample data"
               ]
             }
-            """.codableCode, """
+            """, """
             struct <#SomeType#>: Codable {
                 let greeting: String
                 let instructions: [String]
@@ -27,10 +27,10 @@ final class CodableCodeTests: XCTestCase {
     }
     
     func testB() throws {
-        XCTAssertEqual(
+        test(
             """
             { "array" : [   ] }
-            """.codableCode,
+            """,
             """
             struct <#SomeType#>: Codable {
                 let array: [Any]
@@ -40,12 +40,12 @@ final class CodableCodeTests: XCTestCase {
     }
     
     func testC() throws {
-        XCTAssertEqual(
+        test(
             """
             {
                 "greeting": "Hello world!"
             }
-            """.codableCode,
+            """,
             """
             struct <#SomeType#>: Codable {
                 let greeting: String
@@ -55,14 +55,14 @@ final class CodableCodeTests: XCTestCase {
     }
     
     func testF() throws {
-        XCTAssertEqual("""
+        test("""
         {
           "userId": 1,
           "id": 1,
           "title": "delectus aut autem",
           "completed": false
         }
-        """.codableCode, """
+        """, """
         struct <#SomeType#>: Codable {
             let completed: Bool
             let id: Bool
@@ -73,11 +73,11 @@ final class CodableCodeTests: XCTestCase {
     }
     
     func testG() throws {
-        XCTAssertEqual("""
+        test("""
         {
             "a": [{ "a": "ok" }, { "a": "ok", "b": "ok" }, { "c": 2 }]
         }
-        """.codableCode, """
+        """, """
         struct <#SomeType#>: Codable {
             let a: [A]
             struct A: Codable {
@@ -90,66 +90,56 @@ final class CodableCodeTests: XCTestCase {
     }
     
     func testH() throws {
-        // TODO: Fix this!
-        let a = """
+        test("""
         {
             "a1": [{ "a2": "ok" }, { "a2": "ok", "b2": "ok" }, { "c2": [{ "a3": "ok" }, { "a3": "ok", "b3": "ok" }, { "c3": "ok" }]}]
         }
-        """.codableCode
-        for line in a!.split(separator: "\n") {
-            print(line)
+        """, """
+        struct <#SomeType#>: Codable {
+            let a1: [A1]
+            struct A1: Codable {
+                struct C2: Codable {
+                    let a3: String?
+                    let b3: String?
+                    let c3: String?
+                }
+                let a2: String?
+                let b2: String?
+                let c2: [C2]?
+            }
+        }
+        """)
+    }
+    
+    
+    enum Error: Swift.Error {
+        case unexpectedResult
+    }
+    
+    func test(_ jsonString: String, _ expectedResult: String?)  {
+        guard let codableCode = jsonString.codableCode else {
+            guard expectedResult == nil else {
+                XCTFail()
+                return
+            }
+            return
+        }
+        
+        guard let expectedResult = expectedResult else {
+            XCTFail()
+            return
+        }
+        
+        guard codableCode == expectedResult else {
+            print("json string")
+            jsonString.printEscaping()
+            print("codable code")
+            codableCode.printEscaping()
+            print("expected result")
+            expectedResult.printEscaping()
+            XCTFail()
+            return
         }
     }
     
-    func testI() throws {
-        let a = """
-        {
-            "success": true,
-            "payload": [
-                {
-                    "method": "btc",
-                    "name": "Bitcoin",
-                    "network_name": "Bitcoin Network",
-                    "network_description": "Send to an address of the Bitcoin network with a fee.",
-                    "required_fields": [
-                        "address"
-                    ],
-                    "optional_fields": [
-                        "origin_id",
-                        "client_withdrawal_id",
-                        "max_fee"
-                    ],
-                    "currency_configurations": [
-                        {
-                            "currency": "btc",
-                            "legal_operating_entity": {
-                                "legal_operation_entity": "Bitso International",
-                                "country_code": "GI"
-                            },
-                            "fee": {
-                                "amount": "0.00002999",
-                                "type": "fixed"
-                            },
-                            "limits": {
-                                "system_min": "0.00002730",
-                                "system_max": "0.01002858",
-                                "tx_limit": "0.01002858"
-                            },
-                            "status": {
-                                "type": "active",
-                                "description": "Ok"
-                            },
-                            "asset": "btc"
-                        }
-                    ],
-                    "network": "btc",
-                    "protocol": "btc",
-                }
-            ]
-        }
-        """.codableCode
-        for line in a!.split(separator: "\n") {
-            print(line)
-        }
-    }
 }

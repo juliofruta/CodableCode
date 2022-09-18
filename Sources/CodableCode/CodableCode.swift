@@ -1,5 +1,6 @@
 import Foundation
 import Algorithms
+import Collections
 
 enum Error: Swift.Error {
     case invalidData
@@ -22,6 +23,13 @@ extension String {
         return firstChar.lowercased() + string
     }
     
+    func printEscaping() {
+        let lines = split(separator: "\n")
+        lines.forEach { line in
+            print(line)
+        }
+    }
+    
     mutating func lineBreak() {
         self = self + "\n"
     }
@@ -41,10 +49,12 @@ extension String {
     
     func makeCodableTypeArray(anyArray: [Any], key: String, margin: String, preference: Preference = .optionalsWhereRequired) throws -> String {
         var typesInArray = Set<String>()
-        var uniqueTypes = Set<String>()
-        var optionTypeImplementations = Set<String>()
+        var uniqueTypes = OrderedSet<String>()
+        var optionTypeImplementations = OrderedSet<String>()
         
-        try anyArray.forEach { jsonObject in
+        // first we assume we have an array of Any
+        
+        try anyArray.forEach { jsonObject in //then to confirm or deny that we traverse array to get a list of the different types
             
             var type: String?
             
@@ -60,27 +70,26 @@ extension String {
                 type = "Double"
             case _ as Int:
                 type = "Int"
-            case let dictionary as [String: Any]:
+            case let dictionary as [String: Any]: // for dictionaries
                 let objectData = try JSONSerialization.data(withJSONObject: dictionary, options: [])
                 let objectString = String(data: objectData, encoding: .utf8)!
-                let typeImplementation = try objectString.codableCode(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON", margin: "") // used to see if it's in the set of options already
-                if !uniqueTypes.contains(typeImplementation) { // if the existing type does not contain the dummy type implementation
-                    uniqueTypes.insert(typeImplementation) // insert it
-                    // keep a count
+                let typeImplementation = try objectString.codableCode(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON", margin: "") // create the type implementation
+                if !uniqueTypes.contains(typeImplementation) { // if the existing type implementations does not contain the dummy type implementation
+                    uniqueTypes.append(typeImplementation) // add it to the list of unique types
                     if uniqueTypes.count == 1 {
                         type = key.asType
                     } else {
-                        type = key.asType + "\(uniqueTypes.count)"
+                        type = key.asType + "\(uniqueTypes.count)" // keep a count for naming the different types
                     }
-                    let optionTypeImplementation = try objectString.codableCode(name: type!, margin: margin + identation) // make the actual implementation
-                    optionTypeImplementations.insert(optionTypeImplementation) // insert it to the optionTypeImplementations array
+                    let optionTypeImplementation = try objectString.codableCode(name: type!, margin: margin + identation) // make the actual implementation with it's given name
+                    optionTypeImplementations.append(optionTypeImplementation) // insert it to the optionTypeImplementations array
                 }
             default:
                 type = ""
                 assertionFailure() // unhandled case
             }
             if let unwrappedType = type {
-                typesInArray.insert(unwrappedType)
+                typesInArray.insert(unwrappedType) // append the type to the list
             }
         }
         
@@ -130,9 +139,9 @@ extension String {
                 // get the :<type> that dissapear by diffing
                 // build type
                                 
-                var changes = Set<String>()
+                var changes = OrderedSet<String>()
                 
-                uniqueTypes
+                optionTypeImplementations
                     .map { $0.components(separatedBy: "\n") } // separate by lines and get array of arrays
                     .map { $0.filter { $0.hasPrefix(margin + identation + "let") } } // get only the lines that have let
                     .combinations(ofCount: 2) // make combinations with the blocks of code that have let
@@ -150,22 +159,21 @@ extension String {
                                 diff.removals.map { "- \($0)" }.forEach { print($0) }
                                 diff.insertions.map { "+ \($0)" }.forEach { print($0) }
                             }
-                            
                             // add changes to the changes set
                             diff.removals.forEach {
                                 switch $0 {
                                 case .insert(offset: _, element: let element, associatedWith: _):
-                                    changes.insert(element)
+                                    changes.append(element)
                                 case .remove(offset: _, element: let element, associatedWith: _):
-                                    changes.insert(element)
+                                    changes.append(element)
                                 }
                             }
                             diff.insertions.forEach {
                                 switch $0 {
                                 case .insert(offset: _, element: let element, associatedWith: _):
-                                    changes.insert(element)
+                                    changes.append(element)
                                 case .remove(offset: _, element: let element, associatedWith: _):
-                                    changes.insert(element)
+                                    changes.append(element)
                                 }
                             }
                         } else {
@@ -174,12 +182,16 @@ extension String {
                     }
                 
                 
-                // BUG: lol I'm missing the complete C2 implementation by filtering and rewriting the struct.
+                // BUG: I'm missing the complete C2 implementation by filtering and rewriting the struct.
                 let aTypeImplementation = uniqueTypes.first! // This line is incorrect because the  unique types array has the implementation of different kinds of arrays.
                 // unique types podria tener implementaciones que nada que ver una con la otra y algunas podrian tener implementaciones de estructuras y otras no.
                 // algunas estructuras podrian estar repetidas en nombre y con diferente implementacion. ¿Como resolver este problema?
                 
-                var lines = aTypeImplementation.split(separator: "\n").map { String.init($0) } // get the lines of a type implementation
+                // necesito todos los structs dentro de esas implementaciones. los puedo obtener mediante un regex. struct blah blah { xxxx }
+                
+                var lines = aTypeImplementation
+                    .split(separator: "\n") // get the lines of a type implementation
+                    .map(String.init)
                 
                 changes
                     .sorted()
@@ -190,15 +202,13 @@ extension String {
                         lines.insert(lineChanged, at: lines.count - 1) // insert before the "}"
                     }
                 
-                // write code
+                // write struct implementation
                 lines.removeFirst() // to remove the MOCKED_TYPE message
                 lines.insert(margin + "struct \(key.asType): Codable {", at: 0)
                 let structImplementation = lines
                     .map { margin + identation + $0 }
                     .joined(separator: "\n")
-                
                 swiftCode += structImplementation
-                
             }
         }
         return swiftCode
