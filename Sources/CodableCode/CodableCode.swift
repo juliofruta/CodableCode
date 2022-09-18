@@ -88,7 +88,8 @@ extension String {
             }
         }
         
-        // write type
+        // write the type and then all the needed implementations
+        
         var swiftCode = ""
         
         if typesInArray.isEmpty { // if it's empty then anything could come in there.
@@ -98,28 +99,18 @@ extension String {
         } else { // if there's more than one we have two options...
             switch preference {
             case .enumWithAssociatedTypes: // either use sum the types
-                // write that the type is the enum
-                swiftCode += "\(key.asType)Options"
+                swiftCode += "\(key.asType)Options" // write that the type is the enum
                 swiftCode.lineBreak()
                 swiftCode.lineBreak()
-
-                // create enum with associated types
-                swiftCode += margin + identation + "enum \(key.asType)Options: Codable {"
-                
-                // types are options
-                let options = typesInArray
-                
+                swiftCode += margin + identation + "enum \(key.asType)Options: Codable {" // create enum with associated types
+                let options = typesInArray // rename types to options
                 options.forEach { option in
                     swiftCode.lineBreak()
-                    // enum associatedTypes
-                    swiftCode += margin + identation + identation + "case \(option.asSymbol)(\(option))"
+                    swiftCode += margin + identation + identation + "case \(option.asSymbol)(\(option))" // add associated types to the enum
                 }
-                
                 swiftCode.lineBreak()
                 swiftCode += margin + identation + "}"
-                
-                // write the implementation of the different options
-                optionTypeImplementations.forEach { implementation in
+                optionTypeImplementations.forEach { implementation in // for each implementation write the implementation of the different options
                     swiftCode.lineBreak()
                     swiftCode.lineBreak()
                     swiftCode += implementation
