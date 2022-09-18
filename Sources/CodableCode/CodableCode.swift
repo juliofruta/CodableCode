@@ -127,6 +127,7 @@ extension String {
                 }
                 
             case .optionalsWhereRequired:
+                
                 // add the key as the type
                 swiftCode += "[\(key.asType)]"
                 swiftCode.lineBreak()
@@ -204,13 +205,15 @@ extension String {
                 }
                 
                 // write code
-                lines.removeFirst()
+                lines.removeFirst() //why?
                 lines.insert(margin + "struct \(key.asType): Codable {", at: 0)
                 let structImplementation = lines
                     .map { margin + identation + $0 }
                     .joined(separator: "\n")
                 
                 swiftCode += structImplementation
+                
+                // lol I'm missing the complete C2 implementation by filtering and rewriting the struct.
             }
         }
         return swiftCode
