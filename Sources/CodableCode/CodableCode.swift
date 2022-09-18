@@ -39,7 +39,7 @@ extension String {
         case optionalsWhereRequired // in development...
     }
     
-    func makeCodableTypeArray(anyArray: [Any], key: String, margin: String, preference: Preference = .enumWithAssociatedTypes) throws -> String {
+    func makeCodableTypeArray(anyArray: [Any], key: String, margin: String, preference: Preference = .optionalsWhereRequired) throws -> String {
         var typesInArray = Set<String>()
         var uniqueTypes = Set<String>()
         var optionTypeImplementations = Set<String>()
@@ -127,9 +127,6 @@ extension String {
                 }
                 
             case .optionalsWhereRequired:
-
-                fatalError("optionalsWhereRequired in development. use  enum with associated types instead")
-                
                 // add the key as the type
                 swiftCode += "[\(key.asType)]"
                 swiftCode.lineBreak()
@@ -216,9 +213,6 @@ extension String {
                 swiftCode += structImplementation
             }
         }
-        
-
-        
         return swiftCode
     }
     

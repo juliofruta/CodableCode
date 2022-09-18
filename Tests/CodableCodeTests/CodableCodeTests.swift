@@ -93,7 +93,59 @@ final class CodableCodeTests: XCTestCase {
         // TODO: Fix this!
         let a = """
         {
-            "a": [{ "a": "ok" }, { "a": "ok", "b": "ok" }, { "c": [{ "a": "ok" }, { "a": "ok", "b": "ok" }, { "c": "ok"}]}]
+            "a1": [{ "a2": "ok" }, { "a2": "ok", "b2": "ok" }, { "c2": [{ "a3": "ok" }, { "a3": "ok", "b3": "ok" }, { "c3": "ok" }]}]
+        }
+        """.codableCode
+        for line in a!.split(separator: "\n") {
+            print(line)
+        }
+    }
+    
+    func testI() throws {
+        let a = """
+        {
+            "success": true,
+            "payload": [
+                {
+                    "method": "btc",
+                    "name": "Bitcoin",
+                    "network_name": "Bitcoin Network",
+                    "network_description": "Send to an address of the Bitcoin network with a fee.",
+                    "required_fields": [
+                        "address"
+                    ],
+                    "optional_fields": [
+                        "origin_id",
+                        "client_withdrawal_id",
+                        "max_fee"
+                    ],
+                    "currency_configurations": [
+                        {
+                            "currency": "btc",
+                            "legal_operating_entity": {
+                                "legal_operation_entity": "Bitso International",
+                                "country_code": "GI"
+                            },
+                            "fee": {
+                                "amount": "0.00002999",
+                                "type": "fixed"
+                            },
+                            "limits": {
+                                "system_min": "0.00002730",
+                                "system_max": "0.01002858",
+                                "tx_limit": "0.01002858"
+                            },
+                            "status": {
+                                "type": "active",
+                                "description": "Ok"
+                            },
+                            "asset": "btc"
+                        }
+                    ],
+                    "network": "btc",
+                    "protocol": "btc",
+                }
+            ]
         }
         """.codableCode
         for line in a!.split(separator: "\n") {
