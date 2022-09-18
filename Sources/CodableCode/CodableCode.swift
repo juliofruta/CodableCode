@@ -63,7 +63,7 @@ extension String {
             case let dictionary as [String: Any]:
                 let objectData = try JSONSerialization.data(withJSONObject: dictionary, options: [])
                 let objectString = String(data: objectData, encoding: .utf8)!
-                let typeImplementation = try objectString.codableCode(name: "TYPE IMPLEMENTATION USED FOR COMPARISON", margin: "") // used to see if it's in the set of options already
+                let typeImplementation = try objectString.codableCode(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON", margin: "") // used to see if it's in the set of options already
                 
                 // if the existing type does not contain the dummy type implementation
                 if !uniqueTypes.contains(typeImplementation) {
@@ -95,9 +95,9 @@ extension String {
             swiftCode += "[Any]"
         } else if typesInArray.count == 1 { // if it's only one then we assume that there can only be elements of this type.
             swiftCode += "[\(typesInArray.first!)]"
-        } else { // if there's more...
+        } else { // if there's more than one we have two options...
             switch preference {
-            case .enumWithAssociatedTypes:
+            case .enumWithAssociatedTypes: // either use sum the types
                 // write that the type is the enum
                 swiftCode += "\(key.asType)Options"
                 swiftCode.lineBreak()
@@ -126,10 +126,8 @@ extension String {
                     swiftCode.lineBreak()
                 }
                 
-            case .optionalsWhereRequired:
-                
-                // add the key as the type
-                swiftCode += "[\(key.asType)]"
+            case .optionalsWhereRequired: // diff the types and check for what's optional
+                swiftCode += "[\(key.asType)]" // add the key as the type
                 swiftCode.lineBreak()
                 
                 // and then write the implementation
@@ -144,16 +142,18 @@ extension String {
                 uniqueTypes
                     .map { $0.components(separatedBy: "\n") } // separate by lines and get array of arrays
                     .map {
-                        $0.filter { $0.hasPrefix(margin + identation + "let") }
+                        $0.filter { $0.hasPrefix(margin + identation + "let") } // get only the lines that have let
                     }
                     .combinations(ofCount: 2)
                     .forEach { pair in
                         let lhs = Array(pair[0])
                         let rhs = Array(pair[1])
                         
-                        if #available(macOS 10.15, *) { // hate this... want to avoid it.
+                        if #available(macOS 10.15, *) { // mac os check. I hate this... want to avoid it.
+                            
                             // getting a diff for each case
                             let diff = lhs.difference(from: rhs)
+                            
                             let printDiffingInfo = false
                             if printDiffingInfo {
                                 print("lhs")
@@ -164,6 +164,7 @@ extension String {
                                 diff.insertions.map { "+ \($0)" }.forEach { print($0) }
                             }
         
+                            // add changes to the changes set
                             diff.removals.forEach {
                                 switch $0 {
                                 case .insert(offset: _, element: let element, associatedWith: _):
@@ -185,27 +186,24 @@ extension String {
                         }
                     }
                 
-                let aTypeImplementation = uniqueTypes.first!
+                
+                let aTypeImplementation = uniqueTypes.first! // para empezar aqui vamos mal... por que unique types quien sabe que type tenga.
+                // unique types podria tener implementaciones que nada que ver una con la otra y algunas podrian tener implementaciones de estructuras y otras no.
+                // algunas estructuras podrian estar repetidas en nombre y con diferente implementacion. ¿Como resolver este problema?
                 
                 var lines = aTypeImplementation.split(separator: "\n").map { String.init($0) }
                 
                 changes
                     .sorted()
                     .forEach { change in
-                    
-                    var lineChanged = change
-                    
-                    // remove repeated lines
-                    lines.removeAll(where: { $0 == change })
-                    
-                    // add sintactic suggar "?"
-                    lineChanged += "?"
-                    lines.insert(lineChanged, at: lines.count - 1)
-                
-                }
+                        var lineChanged = change
+                        lines.removeAll(where: { $0 == change }) // remove repeated lines
+                        lineChanged += "?" // add sintactic suggar "?"
+                        lines.insert(lineChanged, at: lines.count - 1)
+                    }
                 
                 // write code
-                lines.removeFirst() //why?
+                lines.removeFirst() // to remove the MOCKED_TYPE message
                 lines.insert(margin + "struct \(key.asType): Codable {", at: 0)
                 let structImplementation = lines
                     .map { margin + identation + $0 }
@@ -213,7 +211,7 @@ extension String {
                 
                 swiftCode += structImplementation
                 
-                // lol I'm missing the complete C2 implementation by filtering and rewriting the struct.
+                // BUG: lol I'm missing the complete C2 implementation by filtering and rewriting the struct.
             }
         }
         return swiftCode
