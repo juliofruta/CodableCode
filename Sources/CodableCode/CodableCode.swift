@@ -92,7 +92,11 @@ extension String {
             swiftCode += "[Any]"
         } else if typesInArray.count == 1 { // if it's only one type in the array then we assume that there can only be elements of this type.
             swiftCode += "[\(typesInArray.first!)]"
-            // TODO: if the type is a dictionary then we need to add it's codable code to the implementation
+            if optionTypeImplementations.count == 1 { // if the type is a dictionary then we add it's codable code to the implementation.
+                swiftCode.lineBreak()
+                swiftCode += optionTypeImplementations.first!
+            }
+            
         } else { // if there's more than one we have two options...
             switch preference {
             case .enumWithAssociatedTypes: // use sum the types
