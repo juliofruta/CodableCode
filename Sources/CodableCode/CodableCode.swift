@@ -145,6 +145,9 @@ extension String {
                 var changes = Set<String>()
                 uniqueTypes
                     .map { $0.components(separatedBy: "\n") } // separate by lines and get array of arrays
+                    .map {
+                        $0.filter { $0.hasPrefix(margin + identation + "let") }
+                    }
                     .combinations(ofCount: 2)
                     .forEach { pair in
                         let lhs = Array(pair[0])
@@ -188,13 +191,19 @@ extension String {
                 
                 var lines = aTypeImplementation.split(separator: "\n").map { String.init($0) }
                 
-                changes.sorted().forEach { change in
+                changes
+                    .sorted()
+                    .forEach { change in
+                    
                     var lineChanged = change
+                    
                     // remove repeated lines
                     lines.removeAll(where: { $0 == change })
+                    
                     // add sintactic suggar "?"
                     lineChanged += "?"
-                    lines.insert(lineChanged, at: lines.count - 1 )
+                    lines.insert(lineChanged, at: lines.count - 1)
+                
                 }
                 
                 // write code
