@@ -64,20 +64,16 @@ extension String {
                 let objectData = try JSONSerialization.data(withJSONObject: dictionary, options: [])
                 let objectString = String(data: objectData, encoding: .utf8)!
                 let typeImplementation = try objectString.codableCode(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON", margin: "") // used to see if it's in the set of options already
-                
-                // if the existing type does not contain the dummy type implementation
-                if !uniqueTypes.contains(typeImplementation) {
-                    // insert it
-                    uniqueTypes.insert(typeImplementation)
+                if !uniqueTypes.contains(typeImplementation) { // if the existing type does not contain the dummy type implementation
+                    uniqueTypes.insert(typeImplementation) // insert it
                     // keep a count
                     if uniqueTypes.count == 1 {
                         type = key.asType
                     } else {
                         type = key.asType + "\(uniqueTypes.count)"
                     }
-                    // and get the actual implementation
-                    let optionTypeImplementation = try objectString.codableCode(name: type!, margin: margin + identation)
-                    optionTypeImplementations.insert(optionTypeImplementation)
+                    let optionTypeImplementation = try objectString.codableCode(name: type!, margin: margin + identation) // make the actual implementation
+                    optionTypeImplementations.insert(optionTypeImplementation) // insert it to the optionTypeImplementations array
                 }
             default:
                 type = ""
@@ -92,13 +88,14 @@ extension String {
         
         var swiftCode = ""
         
-        if typesInArray.isEmpty { // if it's empty then anything could come in there.
+        if typesInArray.isEmpty { // if there are no types in the array it means that the array is empty and we assume that is an Any type, because anything can come in there.
             swiftCode += "[Any]"
-        } else if typesInArray.count == 1 { // if it's only one then we assume that there can only be elements of this type.
+        } else if typesInArray.count == 1 { // if it's only one type in the array then we assume that there can only be elements of this type.
             swiftCode += "[\(typesInArray.first!)]"
+            // TODO: if the type is a dictionary then we need to add it's codable code to the implementation
         } else { // if there's more than one we have two options...
             switch preference {
-            case .enumWithAssociatedTypes: // either use sum the types
+            case .enumWithAssociatedTypes: // use sum the types
                 swiftCode += "\(key.asType)Options" // write that the type is the enum
                 swiftCode.lineBreak()
                 swiftCode.lineBreak()
@@ -110,10 +107,10 @@ extension String {
                 }
                 swiftCode.lineBreak()
                 swiftCode += margin + identation + "}"
-                optionTypeImplementations.forEach { implementation in // for each implementation write the implementation of the different options
+                optionTypeImplementations.forEach { implementation in // for each implementation
                     swiftCode.lineBreak()
                     swiftCode.lineBreak()
-                    swiftCode += implementation
+                    swiftCode += implementation // write each implementation
                     swiftCode.lineBreak()
                 }
                 
@@ -121,7 +118,7 @@ extension String {
                 swiftCode += "[\(key.asType)]" // add the key as the type
                 swiftCode.lineBreak()
                 
-                // and then write the implementation
+                // write the implementation
                 
                 // diff the types
                 // get the lines that dissappear or appear
@@ -130,22 +127,17 @@ extension String {
                 // build type
                                 
                 var changes = Set<String>()
+                
                 uniqueTypes
                     .map { $0.components(separatedBy: "\n") } // separate by lines and get array of arrays
-                    .map {
-                        $0.filter { $0.hasPrefix(margin + identation + "let") } // get only the lines that have let
-                    }
-                    .combinations(ofCount: 2)
+                    .map { $0.filter { $0.hasPrefix(margin + identation + "let") } } // get only the lines that have let
+                    .combinations(ofCount: 2) // make combinations with the blocks of code that have let
                     .forEach { pair in
                         let lhs = Array(pair[0])
                         let rhs = Array(pair[1])
-                        
-                        if #available(macOS 10.15, *) { // mac os check. I hate this... want to avoid it.
-                            
-                            // getting a diff for each case
-                            let diff = lhs.difference(from: rhs)
-                            
-                            let printDiffingInfo = false
+                        if #available(macOS 10.15, *) { // mac os check because of diffing
+                            let diff = lhs.difference(from: rhs) // get a diff for each case
+                            let printDiffingInfo = false // print diffing info configuration
                             if printDiffingInfo {
                                 print("lhs")
                                 lhs.forEach { print("\($0)") }
@@ -154,7 +146,7 @@ extension String {
                                 diff.removals.map { "- \($0)" }.forEach { print($0) }
                                 diff.insertions.map { "+ \($0)" }.forEach { print($0) }
                             }
-        
+                            
                             // add changes to the changes set
                             diff.removals.forEach {
                                 switch $0 {
@@ -173,24 +165,25 @@ extension String {
                                 }
                             }
                         } else {
-                            fatalError()
+                            fatalError("versions lower than 10.15 of macOS do not support diffing")
                         }
                     }
                 
                 
-                let aTypeImplementation = uniqueTypes.first! // para empezar aqui vamos mal... por que unique types quien sabe que type tenga.
+                // BUG: lol I'm missing the complete C2 implementation by filtering and rewriting the struct.
+                let aTypeImplementation = uniqueTypes.first! // This line is incorrect because the  unique types array has the implementation of different kinds of arrays.
                 // unique types podria tener implementaciones que nada que ver una con la otra y algunas podrian tener implementaciones de estructuras y otras no.
                 // algunas estructuras podrian estar repetidas en nombre y con diferente implementacion. ¿Como resolver este problema?
                 
-                var lines = aTypeImplementation.split(separator: "\n").map { String.init($0) }
+                var lines = aTypeImplementation.split(separator: "\n").map { String.init($0) } // get the lines of a type implementation
                 
                 changes
                     .sorted()
                     .forEach { change in
                         var lineChanged = change
-                        lines.removeAll(where: { $0 == change }) // remove repeated lines
+                        lines.removeAll(where: { $0 == change }) // remove repeated lines from current implementation
                         lineChanged += "?" // add sintactic suggar "?"
-                        lines.insert(lineChanged, at: lines.count - 1)
+                        lines.insert(lineChanged, at: lines.count - 1) // insert before the "}"
                     }
                 
                 // write code
@@ -202,7 +195,6 @@ extension String {
                 
                 swiftCode += structImplementation
                 
-                // BUG: lol I'm missing the complete C2 implementation by filtering and rewriting the struct.
             }
         }
         return swiftCode
