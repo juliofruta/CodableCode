@@ -47,11 +47,11 @@ extension String {
         case optionalsWhereRequired // in development...
     }
     
-    func makeCodableTypeArrayAndStructImplementations(
+    func makeArrayType(
         anyArray: [Any],
         key: String,
         margin: String,
-        preference: Preference = .optionalsWhereRequired
+        preference: Preference
     ) throws -> String {
         var typesInArray = Set<String>()
         var typeImplementations = OrderedSet<String>()
@@ -97,125 +97,40 @@ extension String {
             }
         }
         
-        // write the type and then all the needed implementations
-        
+        // write the type
         var swiftCode = ""
-        
-        if typesInArray.isEmpty { // if there are no types in the array it means that the array is empty and we assume that is an Any type, because anything can come in there.
+        switch (typesInArray.count, preference) {
+        case (0, _):
             swiftCode += "[Any]"
-        } else if typesInArray.count == 1 { // if it's only one type in the array then we assume that there can only be elements of this type.
-            swiftCode += "[\(typesInArray.first!)]"
-            if optionTypeImplementations.count == 1 { // if the type is a dictionary then we add it's codable code to the implementation.
-                swiftCode.lineBreak()
-                swiftCode += optionTypeImplementations.first!
-            }
-            
-        } else { // if there's more than one we have two options...
-            switch preference {
-            case .enumWithAssociatedTypes: // use sum the types
-                swiftCode += "\(key.asType)Options" // write that the type is the enum
-                swiftCode.lineBreak()
-                swiftCode.lineBreak()
-                swiftCode += margin + identation + "enum \(key.asType)Options: Codable {" // create enum with associated types
-                let options = typesInArray // rename types to options
-                options.forEach { option in
-                    swiftCode.lineBreak()
-                    swiftCode += margin + identation + identation + "case \(option.asSymbol)(\(option))" // add associated types to the enum
-                }
-                swiftCode.lineBreak()
-                swiftCode += margin + identation + "}"
-                optionTypeImplementations.forEach { implementation in // for each implementation
-                    swiftCode.lineBreak()
-                    swiftCode.lineBreak()
-                    swiftCode += implementation // write each implementation
-                    swiftCode.lineBreak()
-                }
-                
-            case .optionalsWhereRequired: // diff the types and check for what's optional
-                swiftCode += "[\(key.asType)]" // add the key as the type
-                swiftCode.lineBreak()
-                
-                // write the implementation
-                
-                // diff the types
-                // get the lines that dissappear or appear
-                // filter the lines that have let <symbol>: <type>
-                // get the :<type> that dissapear by diffing
-                // build type
-                                
-                var changes = OrderedSet<String>()
-                
-                optionTypeImplementations
-                    .map { $0.components(separatedBy: "\n") } // separate by lines and get array of arrays
-                    .map { $0.filter { $0.hasPrefix(identation + identation + "let") } } // get only the lines that have let
-                    .combinations(ofCount: 2) // make combinations with the blocks of code that have let
-                    .forEach { pair in
-                        let lhs = Array(pair[0])
-                        let rhs = Array(pair[1])
-                        if #available(macOS 10.15, *) { // mac os check because of diffing
-                            let diff = lhs.difference(from: rhs) // get a diff for each case
-                            let printDiffingInfo = false // print diffing info configuration
-                            if printDiffingInfo {
-                                print("lhs")
-                                lhs.forEach { print("\($0)") }
-                                print("rhs")
-                                rhs.forEach { print("\($0)") }
-                                diff.removals.map { "- \($0)" }.forEach { print($0) }
-                                diff.insertions.map { "+ \($0)" }.forEach { print($0) }
-                            }
-                            // add changes to the changes set
-                            diff.removals.forEach {
-                                switch $0 {
-                                case .insert(offset: _, element: let element, associatedWith: _):
-                                    changes.append(element)
-                                case .remove(offset: _, element: let element, associatedWith: _):
-                                    changes.append(element)
-                                }
-                            }
-                            diff.insertions.forEach {
-                                switch $0 {
-                                case .insert(offset: _, element: let element, associatedWith: _):
-                                    changes.append(element)
-                                case .remove(offset: _, element: let element, associatedWith: _):
-                                    changes.append(element)
-                                }
-                            }
-                        } else {
-                            fatalError("versions lower than 10.15 of macOS do not support diffing")
-                        }
-                    }
-                
-                
-                
-                // BUG: I'm missing the complete C2 implementation by filtering and rewriting the struct.
-                let aTypeImplementation = typeImplementations.first! // This line is incorrect because the  unique types array has the implementation of different kinds of arrays.
-                // unique types podria tener implementaciones que nada que ver una con la otra y algunas podrian tener implementaciones de estructuras y otras no.
-                // algunas estructuras podrian estar repetidas en nombre y con diferente implementacion. ¿Como resolver este problema?
-                
-                // necesito todos los structs dentro de esas implementaciones. los puedo obtener mediante un regex. struct blah blah { xxxx }
-                
-                var lines = aTypeImplementation
-                    .split(separator: "\n") // get the lines of a type implementation
-                    .map(String.init)
-                
-                changes
-                    .sorted()
-                    .forEach { change in
-                        var lineChanged = change
-                        lines.removeAll(where: { $0 == change }) // remove repeated lines from current implementation
-                        lineChanged += "?" // add sintactic suggar "?"
-                        lines.insert(lineChanged, at: lines.count - 1) // insert before the "}"
-                    }
-                
-                // write struct implementation
-                lines.removeFirst() // to remove the MOCKED_TYPE message
-                lines.insert(margin + "struct \(key.asType): Codable {", at: 0)
-                let structImplementation = lines
-                    .map { margin + identation + $0 }
-                    .joined(separator: "\n")
-                swiftCode += structImplementation
-            }
+        case (1, _):
+            swiftCode += "[\(key.asType)]"
+        case (_, .enumWithAssociatedTypes):
+            swiftCode += "[\(key.asType)Options]"
+        case (_, .optionalsWhereRequired):
+            swiftCode += "[\(key.asType)]"
         }
+        swiftCode.lineBreak()
+        return swiftCode
+    }
+    
+    func makeTypeImplementations(
+        anyArray: [Any],
+        key: String,
+        margin: String,
+        preference: Preference
+    ) throws -> String {
+        return "<struct implementation work in progress>"
+    }
+    
+    func makeArrayTypeAndImplementations(
+        anyArray: [Any],
+        key: String,
+        margin: String,
+        preference: Preference = .optionalsWhereRequired
+    ) throws -> String {
+        var swiftCode = ""
+        swiftCode += try makeArrayType(anyArray: anyArray, key: key, margin: margin, preference: preference)
+        swiftCode += try makeTypeImplementations(anyArray: anyArray, key: key, margin: margin, preference: preference)
         return swiftCode
     }
     
@@ -256,7 +171,7 @@ extension String {
                     swiftCode += try objectString.codableCode(name: key, margin: margin + identation)
                     swiftCode.lineBreak()
                 case let anyArray as [Any]:
-                    swiftCode += try makeCodableTypeArrayAndStructImplementations(anyArray: anyArray, key: key, margin: margin)
+                    swiftCode += try makeArrayTypeAndImplementations(anyArray: anyArray, key: key, margin: margin)
                 // TODO: Add more cases like dates
                 default:
                     swiftCode += "Any"
