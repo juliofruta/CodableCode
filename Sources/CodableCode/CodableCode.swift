@@ -42,72 +42,96 @@ extension String {
     // 1. enum withassociated types
     // 2. optionals where needed
     // 3. optionals everywhere
-    enum Preference {
-        case enumWithAssociatedTypes
-        case optionalsWhereRequired // in development...
-    }
-    
     func makeArrayType(
         anyArray: [Any],
         key: String,
-        margin: String,
-        preference: Preference
+        margin: String
     ) throws -> String {
-        var typesInArray = Set<String>()
-        var typeImplementations = OrderedSet<String>()
-        var optionTypeImplementations = OrderedSet<String>()
+        
+        var nameOrImplementations = Set<NameOrImplementation>()
+        
+        enum NameOrImplementation: Hashable {
+            case name(String)
+            case implementation(String)
+        }
         
         // first we assume we have an array of Any
-        try anyArray.forEach { jsonObject in //then to confirm or deny that we traverse array to get a list of the different types
+        try anyArray.forEach { jsonObject in // then to confirm or deny that we traverse array to get a list of the different types
             
-            var type: String?
+            var nameOrImplementation: NameOrImplementation?
             
             // check what type is each element of the array
             switch jsonObject {
-            case _ as String:
-                type = "String"
-            case _ as Bool:
-                type = "Bool"
-            case _ as Decimal:
-                type = "Decimal"
-            case _ as Double:
-                type = "Double"
-            case _ as Int:
-                type = "Int"
             case let dictionary as [String: Any]: // for dictionaries
-                let objectData = try JSONSerialization.data(withJSONObject: dictionary, options: [])
-                let objectString = String(data: objectData, encoding: .utf8)!
-                let hashableTypeImplementation = try objectString.codableCode(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON", margin: "") // create the type implementation
-                if !typeImplementations.contains(hashableTypeImplementation) { // if the existing type implementations does not contain the dummy type implementation
-                    typeImplementations.append(hashableTypeImplementation) // add it to the list of unique types
-                    if typeImplementations.count == 1 {
-                        type = key.asType
-                    } else {
-                        type = key.asType + "\(typeImplementations.count)" // keep a count for naming the different types
-                    }
-                    let optionTypeImplementation = try objectString.codableCode(name: type!, margin: margin + identation) // make the actual implementation with it's given name
-                    optionTypeImplementations.append(optionTypeImplementation) // insert it to the optionTypeImplementations array
-                }
+                let data = try JSONSerialization.data(withJSONObject: dictionary, options: [])
+                let string = String(data: data, encoding: .utf8)!
+                let codableCode = try string.codableCode(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON") // create the type implementation
+                nameOrImplementation = .implementation(codableCode)
+            case _ as String:
+                nameOrImplementation = .name("String")
+            case _ as Bool:
+                nameOrImplementation = .name("Bool")
+            case _ as Decimal:
+                nameOrImplementation = .name("Decimal")
+            case _ as Double:
+                nameOrImplementation = .name("Double")
+            case _ as Int:
+                nameOrImplementation = .name("Int")
             default:
-                type = ""
                 assertionFailure() // unhandled case
             }
-            if let unwrappedType = type {
-                typesInArray.insert(unwrappedType) // append the type to the list
+            if let nameOrImplementation = nameOrImplementation {
+                nameOrImplementations.insert(nameOrImplementation) // append the type to the list
             }
         }
         
         // write the type
         var swiftCode = ""
-        switch (typesInArray.count, preference) {
-        case (0, _):
+        
+        if nameOrImplementations.count == 0 {
             swiftCode += "[Any]"
-        case (1, _):
-            swiftCode += "[\(key.asType)]"
-        case (_, .enumWithAssociatedTypes):
-            swiftCode += "[\(key.asType)Options]"
-        case (_, .optionalsWhereRequired):
-            swiftCode += "[\(key.asType)]"
+        } else if nameOrImplementations.count == 1 {
+            var typeName = ""
+            switch nameOrImplementations.first! {
+            case .name(let name):
+                typeName = name
+            case .implementation(_):
+                typeName = key.asType
+            }
+            swiftCode += "[\(typeName)]"
+        } else if nameOrImplementations.count > 1 {
+            
+            let containsNames = nameOrImplementations.contains { nameOrImplementation in
+                switch nameOrImplementation {
+                case .name(_):
+                    return true
+                case .implementation(_):
+                    return false
+                }
+            }
+            
+            let containsImplementations = nameOrImplementations.contains { nameOrImplementation in
+                switch nameOrImplementation {
+                case .name(_):
+                    return false
+                case .implementation(_):
+                    return true
+                }
+            }
+            
+            if !containsNames && !containsImplementations {
+                fatalError("Not supported")
+            }
+            if containsNames && !containsImplementations {
+                fatalError("Not supported")
+            }
+            if !containsNames && containsImplementations {
+                swiftCode += "[\(key.asType)]"
+            }
+            if containsNames && containsImplementations {
+                fatalError("Not supported")
+            }
+            
         }
         swiftCode.lineBreak()
         return swiftCode
@@ -116,21 +140,25 @@ extension String {
     func makeTypeImplementations(
         anyArray: [Any],
         key: String,
-        margin: String,
-        preference: Preference
+        margin: String
     ) throws -> String {
-        return "<struct implementation work in progress>"
+        
+        
+        
+        var swiftCode = ""
+        swiftCode += margin + "<struct implementation work in progress>"
+        return swiftCode
     }
     
     func makeArrayTypeAndImplementations(
         anyArray: [Any],
         key: String,
-        margin: String,
-        preference: Preference = .optionalsWhereRequired
+        margin: String
     ) throws -> String {
         var swiftCode = ""
-        swiftCode += try makeArrayType(anyArray: anyArray, key: key, margin: margin, preference: preference)
-        swiftCode += try makeTypeImplementations(anyArray: anyArray, key: key, margin: margin, preference: preference)
+        swiftCode += try makeArrayType(anyArray: anyArray, key: key, margin: margin)
+        swiftCode.lineBreak()
+        swiftCode += try makeTypeImplementations(anyArray: anyArray, key: key, margin: identation + margin)
         return swiftCode
     }
     
@@ -187,23 +215,3 @@ extension String {
         try? codableCode(name: "<#SomeType#>")
     }
 }
-
-// features to be added.
-// add support to automatically fix when reserved keywords have reserved words for example:
-// let return: Return // this does not compile and is part of the bitso api
-// so add support for coding keys
-//
-//            struct Landmark: Codable {
-//                var name: String
-//                var foundingYear: Int
-//                var location: Coordinate
-//                var vantagePoints: [Coordinate]
-//
-//                enum CodingKeys: String, CodingKey {
-//                    case name = "return"
-//                    case foundingYear = "founding_date"
-//
-//                    case location
-//                    case vantagePoints
-//                }
-//            }
