@@ -47,13 +47,17 @@ extension String {
         case optionalsWhereRequired // in development...
     }
     
-    func makeCodableTypeArray(anyArray: [Any], key: String, margin: String, preference: Preference = .optionalsWhereRequired) throws -> String {
+    func makeCodableTypeArrayAndStructImplementations(
+        anyArray: [Any],
+        key: String,
+        margin: String,
+        preference: Preference = .optionalsWhereRequired
+    ) throws -> String {
         var typesInArray = Set<String>()
-        var uniqueTypes = OrderedSet<String>()
+        var typeImplementations = OrderedSet<String>()
         var optionTypeImplementations = OrderedSet<String>()
         
         // first we assume we have an array of Any
-        
         try anyArray.forEach { jsonObject in //then to confirm or deny that we traverse array to get a list of the different types
             
             var type: String?
@@ -73,13 +77,13 @@ extension String {
             case let dictionary as [String: Any]: // for dictionaries
                 let objectData = try JSONSerialization.data(withJSONObject: dictionary, options: [])
                 let objectString = String(data: objectData, encoding: .utf8)!
-                let typeImplementation = try objectString.codableCode(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON", margin: "") // create the type implementation
-                if !uniqueTypes.contains(typeImplementation) { // if the existing type implementations does not contain the dummy type implementation
-                    uniqueTypes.append(typeImplementation) // add it to the list of unique types
-                    if uniqueTypes.count == 1 {
+                let hashableTypeImplementation = try objectString.codableCode(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON", margin: "") // create the type implementation
+                if !typeImplementations.contains(hashableTypeImplementation) { // if the existing type implementations does not contain the dummy type implementation
+                    typeImplementations.append(hashableTypeImplementation) // add it to the list of unique types
+                    if typeImplementations.count == 1 {
                         type = key.asType
                     } else {
-                        type = key.asType + "\(uniqueTypes.count)" // keep a count for naming the different types
+                        type = key.asType + "\(typeImplementations.count)" // keep a count for naming the different types
                     }
                     let optionTypeImplementation = try objectString.codableCode(name: type!, margin: margin + identation) // make the actual implementation with it's given name
                     optionTypeImplementations.append(optionTypeImplementation) // insert it to the optionTypeImplementations array
@@ -143,7 +147,7 @@ extension String {
                 
                 optionTypeImplementations
                     .map { $0.components(separatedBy: "\n") } // separate by lines and get array of arrays
-                    .map { $0.filter { $0.hasPrefix(margin + identation + "let") } } // get only the lines that have let
+                    .map { $0.filter { $0.hasPrefix(identation + identation + "let") } } // get only the lines that have let
                     .combinations(ofCount: 2) // make combinations with the blocks of code that have let
                     .forEach { pair in
                         let lhs = Array(pair[0])
@@ -182,8 +186,9 @@ extension String {
                     }
                 
                 
+                
                 // BUG: I'm missing the complete C2 implementation by filtering and rewriting the struct.
-                let aTypeImplementation = uniqueTypes.first! // This line is incorrect because the  unique types array has the implementation of different kinds of arrays.
+                let aTypeImplementation = typeImplementations.first! // This line is incorrect because the  unique types array has the implementation of different kinds of arrays.
                 // unique types podria tener implementaciones que nada que ver una con la otra y algunas podrian tener implementaciones de estructuras y otras no.
                 // algunas estructuras podrian estar repetidas en nombre y con diferente implementacion. ¿Como resolver este problema?
                 
@@ -251,7 +256,7 @@ extension String {
                     swiftCode += try objectString.codableCode(name: key, margin: margin + identation)
                     swiftCode.lineBreak()
                 case let anyArray as [Any]:
-                    swiftCode += try makeCodableTypeArray(anyArray: anyArray, key: key, margin: margin)
+                    swiftCode += try makeCodableTypeArrayAndStructImplementations(anyArray: anyArray, key: key, margin: margin)
                 // TODO: Add more cases like dates
                 default:
                     swiftCode += "Any"
