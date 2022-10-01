@@ -8,7 +8,7 @@ enum Error: Swift.Error {
 
 let identation = "    "
 
-public struct CodableType {
+public struct CodableType: Equatable, Hashable {
     let implementation: String
     let subtypes: [CodableType]
     
@@ -48,9 +48,9 @@ extension String {
         self = self + "\n"
     }
     
-    enum NameOrImplementation: Hashable {
+    enum NameOrCodableType: Hashable, Equatable {
         case name(String)
-        case implementation(String)
+        case codableType(CodableType)
     }
     
     // TODO: Instead of enum refactor to use optionals where needed.
@@ -67,68 +67,68 @@ extension String {
         margin: String
     ) throws -> String {
         
-        var nameOrImplementations = Set<NameOrImplementation>()
+        var nameOrCodableTypes = Set<NameOrCodableType>()
         
         // first we assume we have an array of Any
         try anyArray.forEach { jsonObject in // then to confirm or deny that we traverse array to get a list of the different types
             
-            var nameOrImplementation: NameOrImplementation?
+            var nameOrCodableType: NameOrCodableType?
             
             // check what type is each element of the array
             switch jsonObject {
             case let dictionary as [String: Any]: // for dictionaries
                 let data = try JSONSerialization.data(withJSONObject: dictionary, options: [])
                 let string = String(data: data, encoding: .utf8)!
-                let codableCode = try string.codableType(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON").implementation // create the type implementation
-                nameOrImplementation = .implementation(codableCode)
+                let codableType = try string.codableType(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON")
+                nameOrCodableType = .codableType(codableType)
             case _ as String:
-                nameOrImplementation = .name("String")
+                nameOrCodableType = .name("String")
             case _ as Bool:
-                nameOrImplementation = .name("Bool")
+                nameOrCodableType = .name("Bool")
             case _ as Decimal:
-                nameOrImplementation = .name("Decimal")
+                nameOrCodableType = .name("Decimal")
             case _ as Double:
-                nameOrImplementation = .name("Double")
+                nameOrCodableType = .name("Double")
             case _ as Int:
-                nameOrImplementation = .name("Int")
+                nameOrCodableType = .name("Int")
             default:
                 assertionFailure() // unhandled case
             }
-            if let nameOrImplementation = nameOrImplementation {
-                nameOrImplementations.insert(nameOrImplementation) // append the type to the list
+            if let nameOrCodableType = nameOrCodableType {
+                nameOrCodableTypes.insert(nameOrCodableType) // append the type to the list
             }
         }
         
         // write the type
         var swiftCode = ""
         
-        if nameOrImplementations.count == 0 {
+        if nameOrCodableTypes.count == 0 {
             swiftCode += "[Any]"
-        } else if nameOrImplementations.count == 1 {
+        } else if nameOrCodableTypes.count == 1 {
             var typeName = ""
-            switch nameOrImplementations.first! {
+            switch nameOrCodableTypes.first! {
             case .name(let name):
                 typeName = name
-            case .implementation(_):
+            case .codableType(_):
                 typeName = key.asType
             }
             swiftCode += "[\(typeName)]"
-        } else if nameOrImplementations.count > 1 {
+        } else if nameOrCodableTypes.count > 1 {
             
-            let containsNames = nameOrImplementations.contains { nameOrImplementation in
-                switch nameOrImplementation {
+            let containsNames = nameOrCodableTypes.contains { nameOrCodatbleType in
+                switch nameOrCodatbleType {
                 case .name(_):
                     return true
-                case .implementation(_):
+                case .codableType(_):
                     return false
                 }
             }
             
-            let containsImplementations = nameOrImplementations.contains { nameOrImplementation in
-                switch nameOrImplementation {
+            let containsImplementations = nameOrCodableTypes.contains { nameOrCodableType in
+                switch nameOrCodableType {
                 case .name(_):
                     return false
-                case .implementation(_):
+                case .codableType(_):
                     return true
                 }
             }
@@ -157,45 +157,50 @@ extension String {
         margin: String
     ) throws -> String {
         
-        var nameOrImplementations = Set<NameOrImplementation>()
+        var nameOrCodableTypes = Set<NameOrCodableType>()
         
         try anyArray.forEach { jsonObject in // then to confirm or deny that we traverse array to get a list of the different types
             
-            var nameOrImplementation: NameOrImplementation?
+            var nameOrCodableType: NameOrCodableType?
             
             // check what type is each element of the array
             switch jsonObject {
             case let dictionary as [String: Any]: // for dictionaries
                 let data = try JSONSerialization.data(withJSONObject: dictionary, options: [])
                 let string = String(data: data, encoding: .utf8)!
-                let codableCode = try string.codableType(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON").implementation // create the type implementation
-                nameOrImplementation = .implementation(codableCode)
+                let codableType = try string.codableType(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON")
+//                codableCode.subtypes
+                nameOrCodableType = .codableType(codableType)
             case _ as String:
-                nameOrImplementation = .name("String")
+                nameOrCodableType = .name("String")
             case _ as Bool:
-                nameOrImplementation = .name("Bool")
+                nameOrCodableType = .name("Bool")
             case _ as Decimal:
-                nameOrImplementation = .name("Decimal")
+                nameOrCodableType = .name("Decimal")
             case _ as Double:
-                nameOrImplementation = .name("Double")
+                nameOrCodableType = .name("Double")
             case _ as Int:
-                nameOrImplementation = .name("Int")
+                nameOrCodableType = .name("Int")
             default:
                 assertionFailure() // unhandled case
             }
-            if let nameOrImplementation = nameOrImplementation {
-                nameOrImplementations.insert(nameOrImplementation) // append the type to the list
+            if let nameOrCodableType = nameOrCodableType {
+                nameOrCodableTypes.insert(nameOrCodableType) // append the type to the list
             }
         }
         
-        let implementations = nameOrImplementations.compactMap { (nameOrImplementation) -> String? in
-            switch nameOrImplementation {
-            case .name(_):
-                return nil
-            case .implementation(let implementation):
-                return implementation
+        let implementations = nameOrCodableTypes
+            .compactMap { (nameOrCodableTypes) -> CodableType? in
+                switch nameOrCodableTypes {
+                case .name(_):
+                    return nil
+                case .codableType(let codableType):
+                    return codableType
+                }
             }
-        }
+            .map {
+                $0.implementation
+            }
         
         guard !implementations.isEmpty else {
             return ""
@@ -241,6 +246,7 @@ extension String {
     /// - Returns: The string of the type produced by the JSON
     public func codableType(name: String, margin: String = "") throws -> CodableType {
         var implementation = ""
+        var subtypes = [CodableType]()
         implementation += margin + "struct \(name.asType): Codable {"
         guard let data = data(using: .utf8) else {
             throw Error.invalidData
@@ -269,7 +275,9 @@ extension String {
                     implementation += "\(key.asType)"
                     implementation.lineBreak()
                     implementation.lineBreak()
-                    implementation += try objectString.codableType(name: key, margin: margin + identation).implementation
+                    let codableType = try objectString.codableType(name: key, margin: margin + identation)
+                    implementation += codableType.implementation
+                    subtypes.append(contentsOf: codableType.subtypes)
                     implementation.lineBreak()
                 case let anyArray as [Any]:
                     implementation += try makeArrayType(anyArray: anyArray, key: key, margin: margin)
@@ -283,7 +291,7 @@ extension String {
         }
         implementation.lineBreak()
         implementation += margin + "}"
-        return .init(implementation: implementation, subtypes: [])
+        return .init(implementation: implementation, subtypes: subtypes)
     }
     
     public var codableCode: String? {
