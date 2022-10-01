@@ -16,10 +16,12 @@ public struct CodableType: Equatable, Hashable {
         var code = ""
         var implementations = Set<String>()
         dfs(&implementations)
-        implementations.forEach { implementation in
-            code += implementation
-            code.lineBreak()
-        }
+        implementations
+            .sorted()
+            .forEach { implementation in
+                code += implementation
+                code.lineBreak()
+            }
         return code
     }
     
@@ -243,7 +245,7 @@ extension String {
         implementation += "struct \(key.asType): Codable {"
         implementation.lineBreak()
         letLinesIsOptionalPairs
-            .sorted { $0.0 > $1.0 }
+            .sorted { $0.0 < $1.0 }
             .forEach { (line, isOptional) in
             implementation += line + (isOptional ? "?" : "")
             implementation.lineBreak()
