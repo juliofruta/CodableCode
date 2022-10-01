@@ -8,6 +8,20 @@ enum Error: Swift.Error {
 
 let identation = "    "
 
+public struct CodableType {
+    let implementation: String
+    let subtypes: [CodableType]
+    
+    var description: String {
+        var code = implementation
+        code.lineBreak()
+        subtypes.forEach { tipo in
+            code += tipo.description
+        }
+        return code
+    }
+}
+
 // Make this system as anti fragile as possible! The more automated this is the better. I don't want to update the any API manually ever again!
 extension String {
     
@@ -65,7 +79,7 @@ extension String {
             case let dictionary as [String: Any]: // for dictionaries
                 let data = try JSONSerialization.data(withJSONObject: dictionary, options: [])
                 let string = String(data: data, encoding: .utf8)!
-                let codableCode = try string.codableCode(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON") // create the type implementation
+                let codableCode = try string.codableType(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON").implementation // create the type implementation
                 nameOrImplementation = .implementation(codableCode)
             case _ as String:
                 nameOrImplementation = .name("String")
@@ -154,7 +168,7 @@ extension String {
             case let dictionary as [String: Any]: // for dictionaries
                 let data = try JSONSerialization.data(withJSONObject: dictionary, options: [])
                 let string = String(data: data, encoding: .utf8)!
-                let codableCode = try string.codableCode(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON") // create the type implementation
+                let codableCode = try string.codableType(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON").implementation // create the type implementation
                 nameOrImplementation = .implementation(codableCode)
             case _ as String:
                 nameOrImplementation = .name("String")
@@ -225,9 +239,9 @@ extension String {
     /// - Parameter json: A valid JSON string
     /// - Throws: Not sure if it should throw right now. We can check if the JSON is valid inside
     /// - Returns: The string of the type produced by the JSON
-    public func codableCode(name: String, margin: String = "") throws -> (implementation: String, otherImplementations: [String]) {
-        var swiftCode = ""
-        swiftCode += margin + "struct \(name.asType): Codable {"
+    public func codableType(name: String, margin: String = "") throws -> CodableType {
+        var implementation = ""
+        implementation += margin + "struct \(name.asType): Codable {"
         guard let data = data(using: .utf8) else {
             throw Error.invalidData
         }        
@@ -236,43 +250,43 @@ extension String {
                 .sorted(by: { $0.0 < $1.0 })
                 .forEach { pair in
                 let (key, value) = pair
-                swiftCode.lineBreak()
-                swiftCode += margin + identation + "let \(key.asSymbol): "
+                implementation.lineBreak()
+                implementation += margin + identation + "let \(key.asSymbol): "
                 switch value {
                 case _ as Bool:
-                    swiftCode += "Bool"
+                    implementation += "Bool"
                 case _ as String:
-                    swiftCode += "String"
+                    implementation += "String"
                 case _ as Decimal:
-                    swiftCode += "Decimal"
+                    implementation += "Decimal"
                 case _ as Double:
-                    swiftCode += "Double"
+                    implementation += "Double"
                 case _ as Int:
-                    swiftCode += "Int"
+                    implementation += "Int"
                 case let jsonObject as [String: Any]:
                     let objectData = try JSONSerialization.data(withJSONObject: jsonObject, options: [])
                     let objectString = String(data: objectData, encoding: .utf8)!
-                    swiftCode += "\(key.asType)"
-                    swiftCode.lineBreak()
-                    swiftCode.lineBreak()
-                    swiftCode += try objectString.codableCode(name: key, margin: margin + identation)
-                    swiftCode.lineBreak()
+                    implementation += "\(key.asType)"
+                    implementation.lineBreak()
+                    implementation.lineBreak()
+                    implementation += try objectString.codableType(name: key, margin: margin + identation).implementation
+                    implementation.lineBreak()
                 case let anyArray as [Any]:
-                    swiftCode += try makeArrayType(anyArray: anyArray, key: key, margin: margin)
-                    swiftCode.lineBreak()
-                    swiftCode += try makeTypeImplementations(anyArray: anyArray, key: key, margin: margin)
+                    implementation += try makeArrayType(anyArray: anyArray, key: key, margin: margin)
+                    implementation.lineBreak()
+                    implementation += try makeTypeImplementations(anyArray: anyArray, key: key, margin: margin)
                 // TODO: Add more cases like dates
                 default:
-                    swiftCode += "Any"
+                    implementation += "Any"
                 }
             }
         }
-        swiftCode.lineBreak()
-        swiftCode += margin + "}"
-        return swiftCode
+        implementation.lineBreak()
+        implementation += margin + "}"
+        return .init(implementation: implementation, subtypes: [])
     }
     
     public var codableCode: String? {
-        try? codableCode(name: "<#SomeType#>")
+        try? codableType(name: "<#SomeType#>").description
     }
 }
