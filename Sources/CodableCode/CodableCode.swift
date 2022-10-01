@@ -188,13 +188,6 @@ extension String {
         }
         
         var swiftCode = ""
-//        implementations.forEach { implementation in
-//            implementation.split(separator: "\n").forEach { line in
-//                swiftCode += margin + line
-//                swiftCode.lineBreak()
-//            }
-//        }
-        
         
         let arrayOfLinesWithLet = implementations.map { implementation in
             let lines = implementation.split(separator: "\n").map { String($0) }
@@ -208,7 +201,6 @@ extension String {
             linesWithLet.forEach { lineWithLet in
                 propertyCount[lineWithLet] = propertyCount[lineWithLet, default: 0] + 1
             }
-            
         }
         
         let letLinesIsOptionalPairs = propertyCount.map { pair in
@@ -229,23 +221,11 @@ extension String {
         return swiftCode
     }
     
-    func makeArrayTypeAndImplementations(
-        anyArray: [Any],
-        key: String,
-        margin: String
-    ) throws -> String {
-        var swiftCode = ""
-        swiftCode += try makeArrayType(anyArray: anyArray, key: key, margin: margin)
-        swiftCode.lineBreak()
-        swiftCode += try makeTypeImplementations(anyArray: anyArray, key: key, margin: identation + margin)
-        return swiftCode
-    }
-    
     /// Compiles a valid JSON to a Codable Swift Type as in the following Grammar spec: https://www.json.org/json-en.html
     /// - Parameter json: A valid JSON string
     /// - Throws: Not sure if it should throw right now. We can check if the JSON is valid inside
     /// - Returns: The string of the type produced by the JSON
-    public func codableCode(name: String, margin: String = "") throws -> String {
+    public func codableCode(name: String, margin: String = "") throws -> (implementation: String, otherImplementations: [String]) {
         var swiftCode = ""
         swiftCode += margin + "struct \(name.asType): Codable {"
         guard let data = data(using: .utf8) else {
@@ -278,7 +258,9 @@ extension String {
                     swiftCode += try objectString.codableCode(name: key, margin: margin + identation)
                     swiftCode.lineBreak()
                 case let anyArray as [Any]:
-                    swiftCode += try makeArrayTypeAndImplementations(anyArray: anyArray, key: key, margin: margin)
+                    swiftCode += try makeArrayType(anyArray: anyArray, key: key, margin: margin)
+                    swiftCode.lineBreak()
+                    swiftCode += try makeTypeImplementations(anyArray: anyArray, key: key, margin: margin)
                 // TODO: Add more cases like dates
                 default:
                     swiftCode += "Any"
