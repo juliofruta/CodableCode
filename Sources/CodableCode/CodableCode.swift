@@ -17,6 +17,7 @@ public struct CodableType: Equatable, Hashable {
         code.lineBreak()
         subtypes.forEach { tipo in
             code += tipo.description
+            code.lineBreak()
         }
         return code
     }
@@ -151,11 +152,11 @@ extension String {
         return swiftCode
     }
     
-    func makeTypeImplementations(
+    func codableType(
         anyArray: [Any],
         key: String,
         margin: String
-    ) throws -> String {
+    ) throws -> CodableType? {
         
         var nameOrCodableTypes = Set<NameOrCodableType>()
         
@@ -169,7 +170,6 @@ extension String {
                 let data = try JSONSerialization.data(withJSONObject: dictionary, options: [])
                 let string = String(data: data, encoding: .utf8)!
                 let codableType = try string.codableType(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON")
-//                codableCode.subtypes
                 nameOrCodableType = .codableType(codableType)
             case _ as String:
                 nameOrCodableType = .name("String")
@@ -189,7 +189,7 @@ extension String {
             }
         }
         
-        let implementations = nameOrCodableTypes
+        let codableTypes = nameOrCodableTypes
             .compactMap { (nameOrCodableTypes) -> CodableType? in
                 switch nameOrCodableTypes {
                 case .name(_):
@@ -198,15 +198,22 @@ extension String {
                     return codableType
                 }
             }
+        
+        guard !codableTypes.isEmpty else {
+            return nil
+        }
+
+        let implementations = codableTypes
             .map {
                 $0.implementation
             }
         
-        guard !implementations.isEmpty else {
-            return ""
-        }
+        let subtypes = codableTypes
+            .map {
+                $0.subtypes
+            }
+            .flatMap { $0 }
         
-        var swiftCode = ""
         
         let arrayOfLinesWithLet = implementations.map { implementation in
             let lines = implementation.split(separator: "\n").map { String($0) }
@@ -228,16 +235,17 @@ extension String {
             return (lineWithLet, isOptional)
         }
         
-        swiftCode += margin + "struct \(key.asType) {"
-        swiftCode.lineBreak()
+        var implementation = ""
+        implementation += margin + "struct \(key.asType): Codable {"
+        implementation.lineBreak()
         letLinesIsOptionalPairs.forEach { (line, isOptional) in
-            swiftCode += margin +
+            implementation += margin +
             line + (isOptional ? "?" : "")
-            swiftCode.lineBreak()
+            implementation.lineBreak()
         }
-        swiftCode += margin + "}"
+        implementation += margin + "}"
         
-        return swiftCode
+        return .init(implementation: implementation, subtypes: subtypes)
     }
     
     /// Compiles a valid JSON to a Codable Swift Type as in the following Grammar spec: https://www.json.org/json-en.html
@@ -282,7 +290,10 @@ extension String {
                 case let anyArray as [Any]:
                     implementation += try makeArrayType(anyArray: anyArray, key: key, margin: margin)
                     implementation.lineBreak()
-                    implementation += try makeTypeImplementations(anyArray: anyArray, key: key, margin: margin)
+                    guard let codableType = try codableType(anyArray: anyArray, key: key, margin: margin) else {
+                        break
+                    }
+                    subtypes.append(.init(implementation: codableType.implementation, subtypes: codableType.subtypes))
                 // TODO: Add more cases like dates
                 default:
                     implementation += "Any"
