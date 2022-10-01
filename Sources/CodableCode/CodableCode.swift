@@ -10,16 +10,24 @@ let identation = "    "
 
 public struct CodableType: Equatable, Hashable {
     let implementation: String
-    let subtypes: [CodableType]
+    let subtypes: Set<CodableType>
     
     var description: String {
-        var code = implementation
-        code.lineBreak()
-        subtypes.forEach { tipo in
-            code += tipo.description
+        var code = ""
+        var implementations = Set<String>()
+        dfs(&implementations)
+        implementations.forEach { implementation in
+            code += implementation
             code.lineBreak()
         }
         return code
+    }
+    
+    private func dfs(_ implementations: inout Set<String>) {
+        implementations.insert(implementation)
+        subtypes.forEach { codableType in
+            codableType.dfs(&implementations)
+        }
     }
 }
 
@@ -54,15 +62,7 @@ extension String {
         case codableType(CodableType)
     }
     
-    // TODO: Instead of enum refactor to use optionals where needed.
-    // Build Swift Build package plugin
-    // use diffing algorithm to introduce optionals?
-    // strategies:
-    // create
-    // 1. enum withassociated types
-    // 2. optionals where needed
-    // 3. optionals everywhere
-    func makeArrayType(
+    func arrayTypeName(
         anyArray: [Any],
         key: String,
         margin: String
@@ -185,7 +185,7 @@ extension String {
                 assertionFailure() // unhandled case
             }
             if let nameOrCodableType = nameOrCodableType {
-                nameOrCodableTypes.insert(nameOrCodableType) // append the type to the list
+                nameOrCodableTypes.insert(nameOrCodableType)
             }
         }
         
@@ -213,7 +213,11 @@ extension String {
                 $0.subtypes
             }
             .flatMap { $0 }
-        
+            .reduce(Set<CodableType>()) { partialResult, codableType in
+                var mutable = partialResult
+                mutable.insert(codableType)
+                return mutable
+            }
         
         let arrayOfLinesWithLet = implementations.map { implementation in
             let lines = implementation.split(separator: "\n").map { String($0) }
@@ -236,14 +240,15 @@ extension String {
         }
         
         var implementation = ""
-        implementation += margin + "struct \(key.asType): Codable {"
+        implementation += "struct \(key.asType): Codable {"
         implementation.lineBreak()
-        letLinesIsOptionalPairs.forEach { (line, isOptional) in
-            implementation += margin +
-            line + (isOptional ? "?" : "")
+        letLinesIsOptionalPairs
+            .sorted { $0.0 > $1.0 }
+            .forEach { (line, isOptional) in
+            implementation += line + (isOptional ? "?" : "")
             implementation.lineBreak()
         }
-        implementation += margin + "}"
+        implementation += "}"
         
         return .init(implementation: implementation, subtypes: subtypes)
     }
@@ -254,7 +259,7 @@ extension String {
     /// - Returns: The string of the type produced by the JSON
     public func codableType(name: String, margin: String = "") throws -> CodableType {
         var implementation = ""
-        var subtypes = [CodableType]()
+        var subtypes = Set<CodableType>()
         implementation += margin + "struct \(name.asType): Codable {"
         guard let data = data(using: .utf8) else {
             throw Error.invalidData
@@ -265,7 +270,7 @@ extension String {
                 .forEach { pair in
                 let (key, value) = pair
                 implementation.lineBreak()
-                implementation += margin + identation + "let \(key.asSymbol): "
+                implementation += identation + "let \(key.asSymbol): "
                 switch value {
                 case _ as Bool:
                     implementation += "Bool"
@@ -285,15 +290,17 @@ extension String {
                     implementation.lineBreak()
                     let codableType = try objectString.codableType(name: key, margin: margin + identation)
                     implementation += codableType.implementation
-                    subtypes.append(contentsOf: codableType.subtypes)
+                    codableType.subtypes.forEach { codableType in
+                        subtypes.insert(codableType)
+                    }
                     implementation.lineBreak()
                 case let anyArray as [Any]:
-                    implementation += try makeArrayType(anyArray: anyArray, key: key, margin: margin)
+                    implementation += try arrayTypeName(anyArray: anyArray, key: key, margin: margin)
                     implementation.lineBreak()
                     guard let codableType = try codableType(anyArray: anyArray, key: key, margin: margin) else {
                         break
                     }
-                    subtypes.append(.init(implementation: codableType.implementation, subtypes: codableType.subtypes))
+                    subtypes.insert(.init(implementation: codableType.implementation, subtypes: codableType.subtypes))
                 // TODO: Add more cases like dates
                 default:
                     implementation += "Any"
