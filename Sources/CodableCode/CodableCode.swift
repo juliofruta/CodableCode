@@ -34,6 +34,11 @@ extension String {
         self = self + "\n"
     }
     
+    enum NameOrImplementation: Hashable {
+        case name(String)
+        case implementation(String)
+    }
+    
     // TODO: Instead of enum refactor to use optionals where needed.
     // Build Swift Build package plugin
     // use diffing algorithm to introduce optionals?
@@ -49,11 +54,6 @@ extension String {
     ) throws -> String {
         
         var nameOrImplementations = Set<NameOrImplementation>()
-        
-        enum NameOrImplementation: Hashable {
-            case name(String)
-            case implementation(String)
-        }
         
         // first we assume we have an array of Any
         try anyArray.forEach { jsonObject in // then to confirm or deny that we traverse array to get a list of the different types
@@ -143,10 +143,89 @@ extension String {
         margin: String
     ) throws -> String {
         
+        var nameOrImplementations = Set<NameOrImplementation>()
         
+        try anyArray.forEach { jsonObject in // then to confirm or deny that we traverse array to get a list of the different types
+            
+            var nameOrImplementation: NameOrImplementation?
+            
+            // check what type is each element of the array
+            switch jsonObject {
+            case let dictionary as [String: Any]: // for dictionaries
+                let data = try JSONSerialization.data(withJSONObject: dictionary, options: [])
+                let string = String(data: data, encoding: .utf8)!
+                let codableCode = try string.codableCode(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON") // create the type implementation
+                nameOrImplementation = .implementation(codableCode)
+            case _ as String:
+                nameOrImplementation = .name("String")
+            case _ as Bool:
+                nameOrImplementation = .name("Bool")
+            case _ as Decimal:
+                nameOrImplementation = .name("Decimal")
+            case _ as Double:
+                nameOrImplementation = .name("Double")
+            case _ as Int:
+                nameOrImplementation = .name("Int")
+            default:
+                assertionFailure() // unhandled case
+            }
+            if let nameOrImplementation = nameOrImplementation {
+                nameOrImplementations.insert(nameOrImplementation) // append the type to the list
+            }
+        }
+        
+        let implementations = nameOrImplementations.compactMap { (nameOrImplementation) -> String? in
+            switch nameOrImplementation {
+            case .name(_):
+                return nil
+            case .implementation(let implementation):
+                return implementation
+            }
+        }
+        
+        guard !implementations.isEmpty else {
+            return ""
+        }
         
         var swiftCode = ""
-        swiftCode += margin + "<struct implementation work in progress>"
+//        implementations.forEach { implementation in
+//            implementation.split(separator: "\n").forEach { line in
+//                swiftCode += margin + line
+//                swiftCode.lineBreak()
+//            }
+//        }
+        
+        
+        let arrayOfLinesWithLet = implementations.map { implementation in
+            let lines = implementation.split(separator: "\n").map { String($0) }
+            let linesWithLet = lines.filter { $0.contains("let") }
+            return linesWithLet
+        }
+        
+        var propertyCount = [String: Int]()
+        
+        arrayOfLinesWithLet.forEach { linesWithLet in
+            linesWithLet.forEach { lineWithLet in
+                propertyCount[lineWithLet] = propertyCount[lineWithLet, default: 0] + 1
+            }
+            
+        }
+        
+        let letLinesIsOptionalPairs = propertyCount.map { pair in
+            let (lineWithLet, count) = pair
+            let isOptional = count != implementations.count
+            return (lineWithLet, isOptional)
+        }
+        
+        swiftCode += margin + "struct \(key.asType) {"
+        swiftCode.lineBreak()
+        letLinesIsOptionalPairs.forEach { (line, isOptional) in
+            swiftCode += margin +
+            line + (isOptional ? "?" : "")
+            swiftCode.lineBreak()
+        }
+        swiftCode += margin + "}"
+        
         return swiftCode
     }
     
