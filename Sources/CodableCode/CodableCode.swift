@@ -299,7 +299,7 @@ extension String {
                     guard let codableType = try codableType(anyArray: anyArray, key: key, margin: margin) else {
                         break
                     }
-                    subtypes.insert(.init(implementation: codableType.implementation, subtypes: codableType.subtypes))
+                    subtypes.insert(codableType)
                 // TODO: Add more cases like dates
                 default:
                     implementation += "Any"

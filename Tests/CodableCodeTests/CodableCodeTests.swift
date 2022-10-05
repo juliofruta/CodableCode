@@ -6,6 +6,10 @@ final class CodableCodeTests: XCTestCase {
         XCTAssertEqual("".codableCode, nil)
     }
     
+    
+    // same type detection
+    // fix upper cased coding keys
+    // identifica tipos con la misma estructura
     func testA() {
         test("""
         {
@@ -19,7 +23,7 @@ final class CodableCodeTests: XCTestCase {
                                 "dose":"",
                                 "strength":"500 mg"
                             }],
-                            "associatedDrug#2":[{
+                            "associatedDrug2":[{
                                 "name":"somethingElse",
                                 "dose":"",
                                 "strength":"500 mg"
@@ -31,7 +35,7 @@ final class CodableCodeTests: XCTestCase {
                                 "dose":"",
                                 "strength":"500 mg"
                             }],
-                            "associatedDrug#2":[{
+                            "associatedDrug2":[{
                                 "name":"somethingElse",
                                 "dose":"",
                                 "strength":"500 mg"
