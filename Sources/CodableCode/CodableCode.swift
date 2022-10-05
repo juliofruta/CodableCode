@@ -226,10 +226,10 @@ extension String {
         allProperties.forEach { property in
             propertyCount[property] = propertyCount[property, default: 0] + 1
         }
-        let properties2 = propertyCount.map { (key: CodableType.Property, value: Int) -> CodableType.Property in
+        let propertiesWithOptionalSupport = propertyCount.map { (key: CodableType.Property, value: Int) -> CodableType.Property in
             .init(letOrVar: key.letOrVar, symbol: key.symbol, typeName: key.typeName, isOptional: value == codableTypes.count, relatedType: key.relatedType)
         }
-        return .init(name: key.asType, properties: properties2)
+        return .init(name: key.asType, properties: propertiesWithOptionalSupport)
     }
     
     /// Compiles a valid JSON to a Codable Swift Type as in the following Grammar spec: https://www.json.org/json-en.html
