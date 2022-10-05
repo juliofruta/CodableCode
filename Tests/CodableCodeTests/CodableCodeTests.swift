@@ -53,6 +53,27 @@ final class CodableCodeTests: XCTestCase {
              , nil)
     }
     
+    func testB() {
+        test("""
+        {
+            "a":
+            {
+                "a":
+                {
+                    "a":
+                    {
+                        "a": "ok"
+                        
+                    }
+                    
+                }
+                
+            }
+        }
+        """
+             , nil)
+    }
+    
     enum Error: Swift.Error {
         case unexpectedResult
     }
