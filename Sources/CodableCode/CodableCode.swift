@@ -9,27 +9,36 @@ enum Error: Swift.Error {
 let identation = "    "
 
 public struct CodableType: Equatable, Hashable {
-    let implementation: String
-    let subtypes: Set<CodableType>
     
-    var description: String {
-        var code = ""
-        var implementations = Set<String>()
-        dfs(&implementations)
-        implementations
-            .sorted()
-            .forEach { implementation in
-                code += implementation
-                code.lineBreak()
-            }
-        return code
+    struct Property: Equatable, Hashable {
+        var letOrVar = "let"
+        var symbol = "symbol"
+        var typeName = "Any"
+        var isOptional = false
+        var relatedType: CodableType?
     }
     
-    private func dfs(_ implementations: inout Set<String>) {
-        implementations.insert(implementation)
-        subtypes.forEach { codableType in
-            codableType.dfs(&implementations)
+    let structOrClass = "struct"
+    let name: String
+    let properties: [Property]
+    
+    var description: String {
+        let properties = self.properties
+            .map { property in
+                "\(property.letOrVar) \(property.symbol): \(property.typeName)"
+            }
+            .reduce("") { partialResult, line in
+                return "\(partialResult + line.idented.lineBreaked)"
+            }
+        var description = """
+                \(structOrClass) \(name): Codable {
+                \(properties)
+                }
+                """
+        description += self.properties.reduce("") { partialResult, property in
+            return partialResult.lineBreaked + (property.relatedType?.description ?? "")
         }
+        return description
     }
 }
 
@@ -48,11 +57,19 @@ extension String {
         return firstChar.lowercased() + string
     }
     
+    var idented: String {
+        identation + self
+    }
+    
     func printEscaping() {
         let lines = split(separator: "\n")
         lines.forEach { line in
             print(line)
         }
+    }
+    
+    var lineBreaked: String {
+        return self + "\n"
     }
     
     mutating func lineBreak() {
@@ -156,8 +173,7 @@ extension String {
     
     func codableType(
         anyArray: [Any],
-        key: String,
-        margin: String
+        key: String
     ) throws -> CodableType? {
         
         var nameOrCodableTypes = Set<NameOrCodableType>()
@@ -204,111 +220,68 @@ extension String {
         guard !codableTypes.isEmpty else {
             return nil
         }
-
-        let implementations = codableTypes
-            .map {
-                $0.implementation
-            }
-        
-        let subtypes = codableTypes
-            .map {
-                $0.subtypes
-            }
-            .flatMap { $0 }
-            .reduce(Set<CodableType>()) { partialResult, codableType in
-                var mutable = partialResult
-                mutable.insert(codableType)
-                return mutable
-            }
-        
-        let arrayOfLinesWithLet = implementations.map { implementation in
-            let lines = implementation.split(separator: "\n").map { String($0) }
-            let linesWithLet = lines.filter { $0.contains("let") }
-            return linesWithLet
+        let properties = codableTypes.map { $0.properties }
+        let allProperties = properties.flatMap { $0 }
+        var propertyCount = [CodableType.Property: Int]()
+        allProperties.forEach { property in
+            propertyCount[property] = propertyCount[property, default: 0] + 1
         }
-        
-        var propertyCount = [String: Int]()
-        
-        arrayOfLinesWithLet.forEach { linesWithLet in
-            linesWithLet.forEach { lineWithLet in
-                propertyCount[lineWithLet] = propertyCount[lineWithLet, default: 0] + 1
-            }
+        let properties2 = propertyCount.map { (key: CodableType.Property, value: Int) -> CodableType.Property in
+            .init(letOrVar: key.letOrVar, symbol: key.symbol, typeName: key.typeName, isOptional: value == codableTypes.count, relatedType: key.relatedType)
         }
-        
-        let letLinesIsOptionalPairs = propertyCount.map { pair in
-            let (lineWithLet, count) = pair
-            let isOptional = count != implementations.count
-            return (lineWithLet, isOptional)
-        }
-        
-        var implementation = ""
-        implementation += "struct \(key.asType): Codable {"
-        implementation.lineBreak()
-        letLinesIsOptionalPairs
-            .sorted { $0.0 < $1.0 }
-            .forEach { (line, isOptional) in
-            implementation += line + (isOptional ? "?" : "")
-            implementation.lineBreak()
-        }
-        implementation += "}"
-        
-        return .init(implementation: implementation, subtypes: subtypes)
+        return .init(name: key.asType, properties: properties2)
     }
     
     /// Compiles a valid JSON to a Codable Swift Type as in the following Grammar spec: https://www.json.org/json-en.html
     /// - Parameter json: A valid JSON string
     /// - Throws: Not sure if it should throw right now. We can check if the JSON is valid inside
     /// - Returns: The string of the type produced by the JSON
-    public func codableType(name: String, margin: String = "") throws -> CodableType {
-        var implementation = ""
-        var subtypes = Set<CodableType>()
-        implementation += margin + "struct \(name.asType): Codable {"
+    public func codableType(name: String) throws -> CodableType {
         guard let data = data(using: .utf8) else {
             throw Error.invalidData
         }        
-        if let dictionary = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
-            try dictionary
-                .sorted(by: { $0.0 < $1.0 })
-                .forEach { pair in
+        guard let dictionary = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
+            throw Error.invalidData
+        }
+        let properties = try dictionary
+            .sorted(by: { $0.0 < $1.0 })
+            .map { (pair) -> CodableType.Property in
                 let (key, value) = pair
-                implementation.lineBreak()
-                implementation += identation + "let \(key.asSymbol): "
+                
+                var typeName = "Any"
+                var relatedType: CodableType?
+                
                 switch value {
                 case _ as Bool:
-                    implementation += "Bool"
+                    typeName = "Bool"
                 case _ as String:
-                    implementation += "String"
+                    typeName = "String"
                 case _ as Decimal:
-                    implementation += "Decimal"
+                    typeName = "Decimal"
                 case _ as Double:
-                    implementation += "Double"
+                    typeName = "Double"
                 case _ as Int:
-                    implementation += "Int"
+                    typeName = "Int"
                 case let jsonObject as [String: Any]:
                     let objectData = try JSONSerialization.data(withJSONObject: jsonObject, options: [])
                     let objectString = String(data: objectData, encoding: .utf8)!
-                    implementation += "\(key.asType)"
-                    implementation.lineBreak()
-                    implementation.lineBreak()
-                    let codableType = try objectString.codableType(name: key, margin: margin)
-                    subtypes.insert(codableType)
-                    implementation.lineBreak()
+                    let codableType = try objectString.codableType(name: key)
+                    typeName = codableType.name
+                    relatedType = codableType
                 case let anyArray as [Any]:
-                    implementation += try arrayTypeName(anyArray: anyArray, key: key, margin: margin)
-                    implementation.lineBreak()
-                    guard let codableType = try codableType(anyArray: anyArray, key: key, margin: margin) else {
+                    guard let codableType = try codableType(anyArray: anyArray, key: key) else {
                         break
                     }
-                    subtypes.insert(codableType)
-                // TODO: Add more cases like dates
+                    typeName = codableType.name
+                    relatedType = codableType
                 default:
-                    implementation += "Any"
+                    // TODO: Add more cases like dates
+                    break
                 }
+                return .init(symbol: key, typeName: typeName.asSymbol, isOptional: false, relatedType: relatedType)
+                
             }
-        }
-        implementation.lineBreak()
-        implementation += margin + "}"
-        return .init(implementation: implementation, subtypes: subtypes)
+        return .init(name: name, properties: properties)
     }
     
     public var codableCode: String? {
