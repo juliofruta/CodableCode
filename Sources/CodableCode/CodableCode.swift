@@ -8,7 +8,7 @@ enum Error: Swift.Error {
 
 let identation = "    "
 
-public struct CodableType: Hashable {
+public struct CodableType: Equatable, Hashable {
     
     struct Property: Equatable, Hashable {
         var letOrVar = "let"
@@ -38,14 +38,9 @@ public struct CodableType: Hashable {
         return uniqueTypes
     }
     
-    var description: String {
-        
-        print("### count \(uniqueTypes.count)")
-        
-        var description = ""
-        
-        description += uniqueTypes
-            .reduce("") { partialResult, pair in
+    var structs: [String] {
+        let structs = uniqueTypes
+            .map() { pair in
                 let (_, codableType) = pair
                 
                 var implementation = ""
@@ -72,16 +67,16 @@ public struct CodableType: Hashable {
                 implementation += properties
                 implementation += "}"
                 
-                return partialResult.lineBreaked + implementation
+                return implementation
             }
 
-        return description
+        return Array(structs.uniqued().sorted())
     }
-}
-
-extension CodableType: Equatable {
-    static public func == (lhs: CodableType, rhs: CodableType) -> Bool {
-        return lhs.properties == rhs.properties
+    
+    var description: String {
+        structs.reduce("") { partialResult, implementation in
+            partialResult.lineBreaked.lineBreaked + implementation
+        }
     }
 }
 
