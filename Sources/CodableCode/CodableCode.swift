@@ -8,7 +8,7 @@ enum Error: Swift.Error {
 
 let identation = "    "
 
-public struct CodableType: Hashable {
+public struct CodableType: Equatable, Hashable {
     
     struct Property: Equatable, Hashable {
         var letOrVar = "let"
@@ -22,32 +22,62 @@ public struct CodableType: Hashable {
     let name: String
     let properties: [Property]
     
-    var description: String {
-        let properties = self.properties
-            .map { property in
-                "\(property.letOrVar) \(property.symbol): \(property.typeName)"
-            }
-            .reduce("") { partialResult, line in
-                return "\(partialResult + line.idented.lineBreaked)"
-            }
-        var description = """
-                \(structOrClass) \(name): Codable {
-                \(properties)
+    var uniqueTypes: [[Property]: CodableType] {
+        var uniqueTypes = [[Property]: CodableType]()
+        
+        func fillUniqueTypes(root: CodableType, uniqueTypes: inout [[Property]: CodableType]) {
+            uniqueTypes[root.properties] = root
+            root.properties.forEach { property in
+                if let relatedType = property.relatedType {
+                    fillUniqueTypes(root: relatedType, uniqueTypes: &uniqueTypes)
                 }
-                """
-        description += self.properties.reduce("") { partialResult, property in
-            return partialResult.lineBreaked + (property.relatedType?.description ?? "")
+            }
         }
+        
+        fillUniqueTypes(root: self, uniqueTypes: &uniqueTypes)
+        return uniqueTypes
+    }
+    
+    var description: String {
+        
+        print("### count \(uniqueTypes.count)")
+        
+        var description = ""
+        
+        description += uniqueTypes
+            .reduce("") { partialResult, pair in
+                let (_, codableType) = pair
+                
+                var implementation = ""
+                
+                implementation += "\(codableType.structOrClass) \(codableType.name.asType): Codable {".lineBreaked
+                
+                let properties = codableType.properties
+                    .map { (property) -> String in
+                        
+                        // get the name from the uniquetype list.
+                        let typeName: String
+                        if let relatedType = property.relatedType {
+                            typeName = uniqueTypes[relatedType.properties]?.name ?? property.typeName
+                        } else {
+                            typeName = property.typeName
+                        }
+                        
+                        return "\(property.letOrVar) \(property.symbol): \(typeName.asType)"
+                    }
+                    .reduce("") { partialResult, line in
+                        return "\(partialResult + line.idented.lineBreaked)"
+                    }
+                
+                implementation += properties
+                implementation += "}"
+                
+                return partialResult.lineBreaked + implementation
+            }
+
         return description
     }
     
-//    var allImplementations: [Co]
-}
-
-extension CodableType: Equatable {
-    static public func == (lhs: CodableType, rhs: CodableType) -> Bool {
-        return lhs.properties == rhs.properties
-    }
 }
 
 // Make this system as anti fragile as possible! The more automated this is the better. I don't want to update the any API manually ever again!

@@ -49,8 +49,7 @@ final class CodableCodeTests: XCTestCase {
             }],
             "Asthma":[{}]
         }]}
-        """
-             , nil)
+        """, nil)
     }
     
     func testB() {
@@ -70,8 +69,7 @@ final class CodableCodeTests: XCTestCase {
                 
             }
         }
-        """
-             , nil)
+        """, nil)
     }
     
     enum Error: Swift.Error {
