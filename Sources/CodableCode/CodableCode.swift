@@ -291,7 +291,7 @@ extension String {
                     implementation.lineBreak()
                     implementation.lineBreak()
                     let codableType = try objectString.codableType(name: key, margin: margin)
-                    subtypes.insert(.init(implementation: codableType.implementation, subtypes: codableType.subtypes))
+                    subtypes.insert(codableType)
                     implementation.lineBreak()
                 case let anyArray as [Any]:
                     implementation += try arrayTypeName(anyArray: anyArray, key: key, margin: margin)
