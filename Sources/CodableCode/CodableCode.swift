@@ -8,7 +8,7 @@ enum Error: Swift.Error {
 
 let identation = "    "
 
-public struct CodableType: Equatable, Hashable {
+public struct CodableType: Hashable {
     
     struct Property: Equatable, Hashable {
         var letOrVar = "let"
@@ -77,7 +77,12 @@ public struct CodableType: Equatable, Hashable {
 
         return description
     }
-    
+}
+
+extension CodableType: Equatable {
+    static public func == (lhs: CodableType, rhs: CodableType) -> Bool {
+        return lhs.properties == rhs.properties
+    }
 }
 
 // Make this system as anti fragile as possible! The more automated this is the better. I don't want to update the any API manually ever again!
