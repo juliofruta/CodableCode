@@ -58,8 +58,11 @@ public struct CodableType: Equatable, Hashable {
                             typeName = property.typeName
                         }
                         
-                        return "\(property.letOrVar) \(property.symbol): \(typeName.asType)"
+                        let optionalSintacticSuggar = property.isOptional ? "?": ""
+                        
+                        return "\(property.letOrVar) \(property.symbol): \(typeName.asType)\(optionalSintacticSuggar)"
                     }
+                    .sorted()
                     .reduce("") { partialResult, line in
                         return "\(partialResult + line.idented.lineBreaked)"
                     }
@@ -264,7 +267,13 @@ extension String {
             propertyCount[property] = propertyCount[property, default: 0] + 1
         }
         let propertiesWithOptionalSupport = propertyCount.map { (key: CodableType.Property, value: Int) -> CodableType.Property in
-            .init(letOrVar: key.letOrVar, symbol: key.symbol, typeName: key.typeName, isOptional: value == codableTypes.count, relatedType: key.relatedType)
+            .init(
+                letOrVar: key.letOrVar,
+                symbol: key.symbol,
+                typeName: key.typeName,
+                isOptional: value != codableTypes.count,
+                relatedType: key.relatedType
+            )
         }
         return .init(name: key.asType, properties: propertiesWithOptionalSupport)
     }
