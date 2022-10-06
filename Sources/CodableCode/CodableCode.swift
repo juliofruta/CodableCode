@@ -95,7 +95,7 @@ public struct CodableType: Equatable, Hashable {
     
     var description: String {
         structs.reduce("") { partialResult, implementation in
-            partialResult.lineBreaked.lineBreaked + implementation
+            partialResult.lineBreaked + implementation
         }
     }
 }
