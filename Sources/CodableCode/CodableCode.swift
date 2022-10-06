@@ -44,12 +44,12 @@ public struct CodableType: Equatable, Hashable {
                 let (_, codableType) = pair
                 
                 var implementation = ""
-                
                 implementation += "\(codableType.structOrClass) \(codableType.name.asType): Codable {".lineBreaked
+                
+                // create – let <symbol>: <type><optional-syntactic-suggar>
                 
                 let properties = codableType.properties
                     .map { (property) -> String in
-                        
                         // get the name from the uniquetype list.
                         let typeName: String
                         if let relatedType = property.relatedType {
@@ -59,8 +59,7 @@ public struct CodableType: Equatable, Hashable {
                         }
                         
                         let optionalSintacticSuggar = property.isOptional ? "?": ""
-                        
-                        return "\(property.letOrVar) \(property.symbol): \(typeName.asType)\(optionalSintacticSuggar)"
+                        return "\(property.letOrVar) \(property.symbol.asSymbol): \(typeName.asType)\(optionalSintacticSuggar)"
                     }
                     .sorted()
                     .reduce("") { partialResult, line in
@@ -68,8 +67,26 @@ public struct CodableType: Equatable, Hashable {
                     }
                 
                 implementation += properties
-                implementation += "}"
                 
+                // create coding keys
+                
+                var codingKeys = "enum CodingKeys: String, CodingKey {".idented.lineBreaked
+                
+                let cases = codableType.properties
+                    .map { property in
+                        "case \(property.symbol.asSymbol) = \"\(property.symbol)\""
+                    }
+                    .sorted()
+                    .reduce("") { partialResult, line in
+                        return "\(partialResult + line.idented.idented.lineBreaked)"
+                    }
+                
+                codingKeys += cases
+                codingKeys += "}".idented.lineBreaked
+                
+                implementation += codingKeys
+                
+                implementation += "}"
                 return implementation
             }
 
