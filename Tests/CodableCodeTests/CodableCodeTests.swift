@@ -6,7 +6,7 @@ final class CodableCodeTests: XCTestCase {
         XCTAssertEqual("".codableCode, nil)
     }
     
-    testA() {
+    func testA() {
 //        test("your json here", "your expected swift code here")
     }
     
