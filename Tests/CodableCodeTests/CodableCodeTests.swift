@@ -6,6 +6,10 @@ final class CodableCodeTests: XCTestCase {
         XCTAssertEqual("".codableCode, nil)
     }
     
+    testA() {
+//        test("your json here", "your expected swift code here")
+    }
+    
     enum Error: Swift.Error {
         case unexpectedResult
     }
