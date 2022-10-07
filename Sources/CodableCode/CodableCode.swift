@@ -40,7 +40,7 @@ public struct CodableType: Equatable, Hashable {
     
     var structs: [String] {
         let structs = uniqueTypes
-            .map { pair in
+            .map { (pair) -> String in
                 let (_, codableType) = pair
                 
                 var implementation = ""
