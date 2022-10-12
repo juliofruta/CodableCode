@@ -25,14 +25,14 @@ print("""
 Outputs:
 
 ```
-        struct <#SomeType#>: Codable {
-            let greeting: String
-            let instructions: [String]
-            enum CodingKeys: String, CodingKey {
-                case greeting = "greeting"
-                case instructions = "instructions"
-            }
-        }
+struct <#SomeType#>: Codable {
+    let greeting: String
+    let instructions: [String]
+    enum CodingKeys: String, CodingKey {
+        case greeting = "greeting"
+        case instructions = "instructions"
+    }
+}
 ```
 
 -------------------------
