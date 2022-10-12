@@ -37,24 +37,24 @@ final class CodableCodeTests: XCTestCase {
     }
     
     func test(_ jsonString: String, _ expectedResult: String?)  {
-        guard let codableCode = jsonString.codableCode else {
+        let expected = expectedResult?.removingWhitespace
+        let result = jsonString.codableCode?.removingWhitespace
+        guard let result = result else {
             guard expectedResult == nil else {
                 XCTFail()
                 return
             }
             return
         }
-        
-        guard codableCode == expectedResult else {
+        guard expected == result else {
             print("input")
             jsonString.printEscaping()
             print("expected result")
-            expectedResult?.printEscaping()
+            expected?.printEscaping()
             print("actual result")
-            codableCode.printEscaping()
+            result.printEscaping()
             XCTFail()
             return
         }
     }
-    
 }

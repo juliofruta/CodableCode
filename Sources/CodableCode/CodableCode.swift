@@ -134,6 +134,10 @@ extension String {
         self = self + "\n"
     }
     
+    var removingWhitespace: String {
+        filter { !["\n", " "].contains($0) }
+    }
+    
     enum NameOrCodableType: Hashable, Equatable {
         case name(String)
         case codableType(CodableType)
