@@ -31,14 +31,14 @@ final class CodableCodeTests: XCTestCase {
         """
         )
     }
-    
+        
     enum Error: Swift.Error {
         case unexpectedResult
     }
     
     func test(_ jsonString: String, _ expectedResult: String?)  {
-        let expected = expectedResult?.removingWhitespace
-        let result = jsonString.codableCode?.removingWhitespace
+        let expected = expectedResult?.removingWhitespace // fix this
+        let result = jsonString.codableCode?.removingWhitespace // fix this
         guard let result = result else {
             guard expectedResult == nil else {
                 XCTFail()
@@ -50,9 +50,9 @@ final class CodableCodeTests: XCTestCase {
             print("input")
             jsonString.printEscaping()
             print("expected result")
-            expected?.printEscaping()
+            expectedResult?.printEscaping()
             print("actual result")
-            result.printEscaping()
+            jsonString.codableCode?.printEscaping()
             XCTFail()
             return
         }
