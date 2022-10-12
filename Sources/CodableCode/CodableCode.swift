@@ -332,11 +332,13 @@ extension String {
                     typeName = codableType.name
                     relatedType = codableType
                 case let anyArray as [Any]:
-                    guard let codableType = try codableType(anyArray: anyArray, key: key) else {
-                        break
+                    if let codableType = try codableType(anyArray: anyArray, key: key) {
+                        typeName = codableType.name
+                        relatedType = codableType
                     }
-                    typeName = codableType.name
-                    relatedType = codableType
+                    else {
+                        typeName = try arrayTypeName(anyArray: anyArray, key: key)
+                    }
                 default:
                     // TODO: Add more cases like dates
                     break

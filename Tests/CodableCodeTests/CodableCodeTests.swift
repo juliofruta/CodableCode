@@ -7,7 +7,29 @@ final class CodableCodeTests: XCTestCase {
     }
     
     func testA() {
-//        test("your json here", "your expected swift code here")
+        test(
+        """
+        {
+          "greeting": "Welcome to quicktype!",
+          "instructions": [
+            "Type or paste JSON here",
+            "Or choose a sample above",
+            "quicktype will generate code in your",
+            "chosen language to parse the sample data"
+          ]
+        }
+        """,
+        """
+        struct <#SomeType#>: Codable {
+            let greeting: String
+            let instructions: [String]
+            enum CodingKeys: String, CodingKey {
+                case greeting = "greeting"
+                case instructions = "instructions"
+            }
+        }
+        """
+        )
     }
     
     enum Error: Swift.Error {
@@ -24,12 +46,12 @@ final class CodableCodeTests: XCTestCase {
         }
         
         guard codableCode == expectedResult else {
-            print("json string")
+            print("input")
             jsonString.printEscaping()
-            print("codable code")
-            codableCode.printEscaping()
             print("expected result")
             expectedResult?.printEscaping()
+            print("actual result")
+            codableCode.printEscaping()
             XCTFail()
             return
         }
