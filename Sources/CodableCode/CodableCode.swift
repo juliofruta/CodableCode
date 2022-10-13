@@ -1,6 +1,5 @@
 import Foundation
 import Algorithms
-import Collections
 
 enum Error: Swift.Error {
     case invalidData
