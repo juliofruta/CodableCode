@@ -140,7 +140,7 @@ extension String {
         case _ as Int:
             swiftOrCodableType = .swiftType("Int")
         case _ as [Any]:
-            swiftOrCodableType = .swiftType("[Any]")
+            swiftOrCodableType = .swiftType("[Any]") // TODO: Remove [Any] if possible
         default:
             assertionFailure() // unhandled case
         }
@@ -189,16 +189,16 @@ extension String {
             }
             
             if !containsNames && !containsImplementations {
-                fatalError("Not supported")
+                swiftCode += "[Any]" // TODO: Remove [Any] if possible
             }
             if containsNames && !containsImplementations {
-                fatalError("Not supported")
+                swiftCode += "[Any]" // TODO: Remove [Any] if possible
             }
             if !containsNames && containsImplementations {
                 swiftCode += "[\(key.asType)]"
             }
             if containsNames && containsImplementations {
-                fatalError("Not supported")
+                swiftCode += "[Any]" // TODO: Remove [Any] if possible
             }
             
         }
