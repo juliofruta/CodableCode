@@ -119,44 +119,40 @@ extension String {
         case codableType(CodableType)
     }
     
+    private func swiftOrCodableType(for jsonObject: Any) throws -> SwiftOrCodableType? {
+        var swiftOrCodableType: SwiftOrCodableType?
+        
+        // check what type is each element of the array
+        switch jsonObject {
+        case let dictionary as [String: Any]: // for dictionaries
+            let data = try JSONSerialization.data(withJSONObject: dictionary, options: [])
+            let string = String(data: data, encoding: .utf8)!
+            let codableType = try string.codableType(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON")
+            swiftOrCodableType = .codableType(codableType)
+        case _ as String:
+            swiftOrCodableType = .swiftType("String")
+        case _ as Bool:
+            swiftOrCodableType = .swiftType("Bool")
+        case _ as Decimal:
+            swiftOrCodableType = .swiftType("Decimal")
+        case _ as Double:
+            swiftOrCodableType = .swiftType("Double")
+        case _ as Int:
+            swiftOrCodableType = .swiftType("Int")
+        case _ as [Any]:
+            swiftOrCodableType = .swiftType("[Any]")
+        default:
+            assertionFailure() // unhandled case
+        }
+        return swiftOrCodableType
+    }
+    
     func arrayTypeName(
         anyArray: [Any],
         key: String
     ) throws -> String {
-        
-        var swiftOrCodableTypes = Set<SwiftOrCodableType>()
-        
-        // first we assume we have an array of Any
-        try anyArray.forEach { jsonObject in // then to confirm or deny that we traverse array to get a list of the different types
-            
-            var nameOrCodableType: SwiftOrCodableType?
-            
-            // check what type is each element of the array
-            switch jsonObject {
-            case let dictionary as [String: Any]: // for dictionaries
-                let data = try JSONSerialization.data(withJSONObject: dictionary, options: [])
-                let string = String(data: data, encoding: .utf8)!
-                let codableType = try string.codableType(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON")
-                nameOrCodableType = .codableType(codableType)
-            case _ as String:
-                nameOrCodableType = .swiftType("String")
-            case _ as Bool:
-                nameOrCodableType = .swiftType("Bool")
-            case _ as Decimal:
-                nameOrCodableType = .swiftType("Decimal")
-            case _ as Double:
-                nameOrCodableType = .swiftType("Double")
-            case _ as Int:
-                nameOrCodableType = .swiftType("Int")
-            case _ as [Any]:
-                nameOrCodableType = .swiftType("[Any]") // this most likely could be improved with enums.
-            default:
-                assertionFailure() // unhandled case
-            }
-            if let nameOrCodableType = nameOrCodableType {
-                swiftOrCodableTypes.insert(nameOrCodableType) // append the type to the list
-            }
-        }
+        let arrayOfSwiftOrCodableTypes = try anyArray.compactMap(swiftOrCodableType(for:))
+        let swiftOrCodableTypes = Set<SwiftOrCodableType>(arrayOfSwiftOrCodableTypes)
         
         // write the type
         var swiftCode = ""
@@ -213,39 +209,8 @@ extension String {
         anyArray: [Any],
         key: String
     ) throws -> CodableType? {
-        
-        var swiftOrCodableTypes = Set<SwiftOrCodableType>()
-        
-        try anyArray.forEach { jsonObject in // then to confirm or deny that we traverse array to get a list of the different types
-            
-            var swiftOrCodableType: SwiftOrCodableType?
-            
-            // check what type is each element of the array
-            switch jsonObject {
-            case let dictionary as [String: Any]: // for dictionaries
-                let data = try JSONSerialization.data(withJSONObject: dictionary, options: [])
-                let string = String(data: data, encoding: .utf8)!
-                let codableType = try string.codableType(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON")
-                swiftOrCodableType = .codableType(codableType)
-            case _ as String:
-                swiftOrCodableType = .swiftType("String")
-            case _ as Bool:
-                swiftOrCodableType = .swiftType("Bool")
-            case _ as Decimal:
-                swiftOrCodableType = .swiftType("Decimal")
-            case _ as Double:
-                swiftOrCodableType = .swiftType("Double")
-            case _ as Int:
-                swiftOrCodableType = .swiftType("Int")
-            case _ as [Any]:
-                swiftOrCodableType = .swiftType("[Any]")
-            default:
-                assertionFailure() // unhandled case
-            }
-            if let swiftOrCodableType = swiftOrCodableType {
-                swiftOrCodableTypes.insert(swiftOrCodableType)
-            }
-        }
+        let arrayOfSwiftOrCodableTypes = try anyArray.compactMap(swiftOrCodableType(for:))
+        let swiftOrCodableTypes = Set<SwiftOrCodableType>(arrayOfSwiftOrCodableTypes)
         
         let codableTypes = swiftOrCodableTypes
             .compactMap { (nameOrCodableTypes) -> CodableType? in

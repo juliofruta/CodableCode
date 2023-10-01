@@ -34,7 +34,7 @@ let package = Package(
                 .productItem(name: "CustomDump", package: "swift-custom-dump")
             ], 
             resources: [
-                .copy("Mocks/")
+           
             ]
         ),
     ]
