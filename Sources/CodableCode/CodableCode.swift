@@ -42,12 +42,12 @@ public struct CodableType: Equatable, Hashable {
             .map { (pair) -> String in
                 let (_, codableType) = pair
                 
-                var implementation = ""
-                implementation += "\(codableType.structOrClass) \(codableType.name.asType): Codable {".lineBreaked
+                var implementation = [String]()
+                implementation += ["\(codableType.structOrClass) \(codableType.name.asType): Codable {"]
                 
                 // create – let <symbol>: <type><optional-syntactic-suggar>
                 
-                var properties = codableType.properties
+                let properties = codableType.properties
                     .map { (property) -> String in
                         // get the name from the uniquetype list.
                         let typeName: String
@@ -61,52 +61,36 @@ public struct CodableType: Equatable, Hashable {
                         return "\(property.letOrVar) \(property.symbol.asSymbol): \(typeName.asType)\(optionalSintacticSuggar)"
                     }
                     .sorted()
-                    .reduce("") { partialResult, line in
-                        return "\(partialResult + line.idented.lineBreaked)"
+                    .reduce([String]()) { partialResult, line in
+                        return partialResult + [line.idented]
                     }
-                
-                // we don't want the break of the last line
-                if !properties.isEmpty {
-                    properties = String(properties.dropLast())
-                }
                 
                 implementation += properties
                 
                 // create coding keys
-                
-                var codingKeys = "enum CodingKeys: String, CodingKey {".idented.lineBreaked
+                var codingKeys: [String] = ["enum CodingKeys: String, CodingKey {".idented]
                 
                 let cases = codableType.properties
                     .map { property in
                         "case \(property.symbol.asSymbol) = \"\(property.symbol)\""
                     }
                     .sorted()
-                    .reduce("") { partialResult, line in
-                        return "\(partialResult + line.idented.idented.lineBreaked)"
+                    .reduce([String]()) { partialResult, line in
+                        return partialResult + [line.idented.idented]
                     }
                 
                 codingKeys += cases
-                codingKeys += "}".idented.lineBreaked
-                
+                codingKeys += ["}".idented]
                 implementation += codingKeys
-                
-                implementation += "}"
-                return implementation
+                implementation += ["}"]
+                return implementation.joined(separator: "\n")
             }
 
         return Array(structs.uniqued().sorted())
     }
     
     var description: String {
-        let description = structs.reduce("") { partialResult, implementation in
-            partialResult.lineBreaked + implementation
-        }
-        
-        // we don't want to line break the first line
-        if !structs.isEmpty {
-            return String(description.dropFirst())
-        }
-        
+        let description = structs.joined(separator: "\n")
         return description
     }
 }
@@ -135,14 +119,6 @@ extension String {
         lines.forEach { line in
             print(line)
         }
-    }
-    
-    var lineBreaked: String {
-        return self + "\n"
-    }
-    
-    mutating func lineBreak() {
-        self = self + "\n"
     }
     
     var removingWhitespace: String {
@@ -239,7 +215,6 @@ extension String {
             }
             
         }
-        swiftCode.lineBreak()
         return swiftCode
     }
     
