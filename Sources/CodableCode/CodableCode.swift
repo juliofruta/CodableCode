@@ -7,7 +7,7 @@ enum Error: Swift.Error {
 
 let identation = "    "
 
-public struct CodableType: Equatable, Hashable {
+struct CodableType: Equatable, Hashable {
     
     struct Property: Equatable, Hashable {
         var letOrVar = "let"
@@ -112,17 +112,6 @@ extension String {
     
     var idented: String {
         identation + self
-    }
-    
-    func printEscaping() {
-        let lines = split(separator: "\n")
-        lines.forEach { line in
-            print(line)
-        }
-    }
-    
-    var removingWhitespace: String {
-        filter { !["\n", " "].contains($0) }
     }
     
     enum SwiftOrCodableType: Hashable, Equatable {
@@ -287,7 +276,7 @@ extension String {
     
     /// Compiles a valid JSON to a Codable Swift Type as in the following Grammar spec: https://www.json.org/json-en.html
     /// - Parameter json: A valid JSON string
-    /// - Throws: Not sure if it should throw right now. We can check if the JSON is valid inside
+    /// - Throws: JSON errors or errors in the library.
     /// - Returns: The string of the type produced by the JSON
     func codableType(name: String) throws -> CodableType {
         guard let data = data(using: .utf8) else {
@@ -339,6 +328,9 @@ extension String {
         return .init(name: name, properties: properties)
     }
     
+    /// Get the Codable code from the provided JSON
+    /// - Parameter name: The name of the struct, if no struct is provided you'll get a placeholder of the type <#SomeType#>
+    /// - Returns: The codable code as a string.
     public func codableCode(name: String = "<#SomeType#>") throws -> String {
         return try codableType(name: name).description
     }
