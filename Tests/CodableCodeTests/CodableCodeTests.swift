@@ -4,12 +4,22 @@ import CustomDump
 
 final class CodableCodeTests: XCTestCase {
     
+    enum Error: Swift.Error {
+        case resultNotInitialized
+    }
+    
     /// Tests that the JSON input generates the expected code. You can check for the diff in case this fails.
     /// - Parameters:
     ///   - input: The JSON input as a String.
     ///   - expectedResult:A result having either the expected code or an error.
     func test(_ input: String, _ expectedResult: Result<String, Swift.Error>)  {
-        let result = input.codableCode()
+        var result: Result<String, Swift.Error> = .failure(Error.resultNotInitialized)
+        do {
+            let success = try input.codableCode()
+            result = .success(success)
+        } catch {
+            result = .failure(error)
+        }
         let product = (result, expectedResult)
         switch product {
         case (let .success(generatedCode), let .success(expectedCode)):

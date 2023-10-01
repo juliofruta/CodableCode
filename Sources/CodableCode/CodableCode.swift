@@ -299,13 +299,13 @@ extension String {
             propertyCount[property] = propertyCount[property, default: 0] + 1
         }
         let propertiesWithOptionalSupport = propertyCount.map { (key: CodableType.Property, value: Int) -> CodableType.Property in
-            .init(
-                letOrVar: key.letOrVar,
-                symbol: key.symbol,
-                typeName: key.typeName,
-                isOptional: value != codableTypes.count,
-                relatedType: key.relatedType
-            )
+                .init(
+                    letOrVar: key.letOrVar,
+                    symbol: key.symbol,
+                    typeName: key.typeName,
+                    isOptional: value != codableTypes.count,
+                    relatedType: key.relatedType
+                )
         }
         return .init(name: key.asType, properties: propertiesWithOptionalSupport)
     }
@@ -314,7 +314,7 @@ extension String {
     /// - Parameter json: A valid JSON string
     /// - Throws: Not sure if it should throw right now. We can check if the JSON is valid inside
     /// - Returns: The string of the type produced by the JSON
-    public func codableType(name: String) throws -> CodableType {
+    func codableType(name: String) throws -> CodableType {
         guard let data = data(using: .utf8) else {
             throw Error.invalidData
         }        
@@ -364,12 +364,7 @@ extension String {
         return .init(name: name, properties: properties)
     }
     
-    public func codableCode() -> Result<String, Swift.Error> {
-        do {
-            let codableCode = try codableType(name: "<#SomeType#>").description
-            return .success(codableCode)
-        } catch {
-            return .failure(error)
-        }
+    public func codableCode(name: String = "<#SomeType#>") throws -> String {
+        return try codableType(name: name).description
     }
 }

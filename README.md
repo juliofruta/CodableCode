@@ -9,7 +9,7 @@ Codable code is a Swift Package that allows you to convert JSON Strings into Swi
 The following code:
 
 ```
-print("""
+print(try! """
 {
   "greeting": "Welcome to quicktype!",
   "instructions": [
@@ -19,7 +19,7 @@ print("""
     "chosen language to parse the sample data"
   ]
 }
-""".codableCode!)
+""".codableCode())
 ```
 
 Outputs:
@@ -38,13 +38,8 @@ struct <#SomeType#>: Codable {
 -------------------------
 
 ## Declaration 
-```
-var codableCode: String? { get }
-```
-
-## See Also
 
 ### Throwing an error and setting a type name
 ```
-func makeCodableCode(name:) throws
+codableCode(name: String = "<#SomeType#>") throws -> String
 ```
