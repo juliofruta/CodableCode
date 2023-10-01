@@ -5,10 +5,20 @@ enum Error: Swift.Error {
     case invalidData
 }
 
-let identation = "    "
+enum Identation: String {
+    case fourSpaces = "    "
+    case twoSpaces = "  "
+}
 
+/// A representation of a type
+/// This is a struct that reptresents a struct
+/// For example:
+/// struct A {
+///    let a: Bool
+/// }
 struct CodableType: Equatable, Hashable {
     
+    /// A representation of a property of a type
     struct Property: Equatable, Hashable {
         var letOrVar = "let"
         var symbol = "symbol"
@@ -17,10 +27,16 @@ struct CodableType: Equatable, Hashable {
         var relatedType: CodableType?
     }
     
+    /// Whether you are building struct or class
     let structOrClass = "struct"
+    
+    /// The name of the type
     let name: String
+    
+    /// An array of the properties in the type
     let properties: [Property]
     
+    /// Unique sub-types in the type
     var uniqueTypes: [[Property]: CodableType] {
         var uniqueTypes = [[Property]: CodableType]()
         
@@ -37,6 +53,7 @@ struct CodableType: Equatable, Hashable {
         return uniqueTypes
     }
     
+    /// All the structs to be printed
     var structs: [String] {
         let structs = uniqueTypes
             .map { (pair) -> String in
@@ -98,20 +115,23 @@ struct CodableType: Equatable, Hashable {
 // Make this system as anti fragile as possible! The more automated this is the better. I don't want to update any API manually ever again!
 extension String {
     
+    /// Uppercases the first character
     var asType: String {
         var string = self
         let firstChar = string.removeFirst()
         return firstChar.uppercased() + string
     }
     
+    /// Lowercases the first Character
     var asSymbol: String {
         var string = self
         let firstChar = string.removeFirst()
         return firstChar.lowercased() + string
     }
     
+    /// Idented string
     var idented: String {
-        identation + self
+        Identation.fourSpaces.rawValue + self
     }
     
     enum SwiftOrCodableType: Hashable, Equatable {
@@ -139,14 +159,19 @@ extension String {
             swiftOrCodableType = .swiftType("Double")
         case _ as Int:
             swiftOrCodableType = .swiftType("Int")
-        case _ as [Any]:
-            swiftOrCodableType = .swiftType("[Any]") // TODO: Remove [Any] if possible
+//        case _ as [Any]:
+//            swiftOrCodableType = .swiftType("[Any]") // TODO: Remove [Any] if possible
         default:
             assertionFailure() // unhandled case
         }
         return swiftOrCodableType
     }
     
+    /// Get the name of the Array type.
+    /// - Parameters:
+    ///   - anyArray: The array of json objects.
+    ///   - key: The key of the array. This is used to infer the name of the Array type.
+    /// - Returns: Array type name.
     func arrayTypeName(
         anyArray: [Any],
         key: String
@@ -189,7 +214,7 @@ extension String {
             }
             
             if !containsNames && !containsImplementations {
-                swiftCode += "[Any]" // TODO: Remove [Any] if possible
+                assertionFailure("This case is not possible")
             }
             if containsNames && !containsImplementations {
                 swiftCode += "[Any]" // TODO: Remove [Any] if possible
@@ -200,11 +225,15 @@ extension String {
             if containsNames && containsImplementations {
                 swiftCode += "[Any]" // TODO: Remove [Any] if possible
             }
-            
         }
         return swiftCode
     }
     
+    /// Returns a Optional Codable type
+    /// - Parameters:
+    ///   - anyArray: Array of JSON Objects
+    ///   - key: Key for the codable type
+    /// - Returns: An optional codable type for the JSON objects
     func codableType(
         anyArray: [Any],
         key: String
