@@ -148,6 +148,8 @@ extension String {
                 nameOrCodableType = .swiftType("Double")
             case _ as Int:
                 nameOrCodableType = .swiftType("Int")
+            case _ as [Any]
+                nameOrCodableType = .swiftType("[Any]")
             default:
                 assertionFailure() // unhandled case
             }
