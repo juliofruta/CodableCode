@@ -149,7 +149,7 @@ extension String {
             case _ as Int:
                 nameOrCodableType = .swiftType("Int")
             case _ as [Any]:
-                nameOrCodableType = .swiftType("[Any]")
+                nameOrCodableType = .swiftType("[Any]") // this most likely could be improved with enums.
             default:
                 assertionFailure() // unhandled case
             }
