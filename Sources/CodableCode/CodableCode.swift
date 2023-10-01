@@ -138,6 +138,9 @@ extension String {
         case swiftType(String)
         case codableType(CodableType)
         
+        /// Returns Swift Type or Codable type
+        /// - Parameter jsonObject: Any object that
+        /// - Returns: Either a swiftType or a Codable Type
         static func swiftOrCodableType(for jsonObject: Any) throws -> SwiftOrCodableType? {
             var swiftOrCodableType: SwiftOrCodableType?
             
