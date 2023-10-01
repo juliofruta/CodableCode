@@ -11,11 +11,29 @@
         }
       },
       {
+        "package": "swift-custom-dump",
+        "repositoryURL": "https://github.com/pointfreeco/swift-custom-dump",
+        "state": {
+          "branch": null,
+          "revision": "3efbfba0e4e56c7187cc19137ee16b7c95346b79",
+          "version": "1.1.0"
+        }
+      },
+      {
         "package": "swift-numerics",
         "repositoryURL": "https://github.com/apple/swift-numerics",
         "state": {
           "branch": null,
           "revision": "0a5bc04095a675662cf24757cc0640aa2204253b",
+          "version": "1.0.2"
+        }
+      },
+      {
+        "package": "xctest-dynamic-overlay",
+        "repositoryURL": "https://github.com/pointfreeco/xctest-dynamic-overlay",
+        "state": {
+          "branch": null,
+          "revision": "23cbf2294e350076ea4dbd7d5d047c1e76b03631",
           "version": "1.0.2"
         }
       }

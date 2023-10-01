@@ -47,7 +47,7 @@ public struct CodableType: Equatable, Hashable {
                 
                 // create – let <symbol>: <type><optional-syntactic-suggar>
                 
-                let properties = codableType.properties
+                var properties = codableType.properties
                     .map { (property) -> String in
                         // get the name from the uniquetype list.
                         let typeName: String
@@ -64,6 +64,11 @@ public struct CodableType: Equatable, Hashable {
                     .reduce("") { partialResult, line in
                         return "\(partialResult + line.idented.lineBreaked)"
                     }
+                
+                // we don't want the break of the last line
+                if !properties.isEmpty {
+                    properties = String(properties.dropLast())
+                }
                 
                 implementation += properties
                 
@@ -93,13 +98,20 @@ public struct CodableType: Equatable, Hashable {
     }
     
     var description: String {
-        structs.reduce("") { partialResult, implementation in
+        let description = structs.reduce("") { partialResult, implementation in
             partialResult.lineBreaked + implementation
         }
+        
+        // we don't want to line break the first line
+        if !structs.isEmpty {
+            return String(description.dropFirst())
+        }
+        
+        return description
     }
 }
 
-// Make this system as anti fragile as possible! The more automated this is the better. I don't want to update the any API manually ever again!
+// Make this system as anti fragile as possible! The more automated this is the better. I don't want to update any API manually ever again!
 extension String {
     
     var asType: String {
@@ -352,7 +364,12 @@ extension String {
         return .init(name: name, properties: properties)
     }
     
-    public var codableCode: String? {
-        try? codableType(name: "<#SomeType#>").description
+    public func codableCode() -> Result<String, Swift.Error> {
+        do {
+            let codableCode = try codableType(name: "<#SomeType#>").description
+            return .success(codableCode)
+        } catch {
+            return .failure(error)
+        }
     }
 }
