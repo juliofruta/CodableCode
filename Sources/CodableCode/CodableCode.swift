@@ -139,7 +139,7 @@ extension String {
         case codableType(CodableType)
     }
     
-    private func swiftOrCodableType(for jsonObject: Any) throws -> SwiftOrCodableType? {
+    private static func swiftOrCodableType(for jsonObject: Any) throws -> SwiftOrCodableType? {
         var swiftOrCodableType: SwiftOrCodableType?
         
         // check what type is each element of the array
@@ -176,7 +176,7 @@ extension String {
         anyArray: [Any],
         key: String
     ) throws -> String {
-        let arrayOfSwiftOrCodableTypes = try anyArray.compactMap(swiftOrCodableType(for:))
+        let arrayOfSwiftOrCodableTypes = try anyArray.compactMap(String.swiftOrCodableType(for:))
         let swiftOrCodableTypes = Set<SwiftOrCodableType>(arrayOfSwiftOrCodableTypes)
         
         // write the type
@@ -238,7 +238,7 @@ extension String {
         anyArray: [Any],
         key: String
     ) throws -> CodableType? {
-        let arrayOfSwiftOrCodableTypes = try anyArray.compactMap(swiftOrCodableType(for:))
+        let arrayOfSwiftOrCodableTypes = try anyArray.compactMap(String.swiftOrCodableType(for:))
         let swiftOrCodableTypes = Set<SwiftOrCodableType>(arrayOfSwiftOrCodableTypes)
         
         let codableTypes = swiftOrCodableTypes
