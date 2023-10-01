@@ -237,6 +237,8 @@ extension String {
                 swiftOrCodableType = .swiftType("Double")
             case _ as Int:
                 swiftOrCodableType = .swiftType("Int")
+            case _ as [Any]:
+                swiftOrCodableType = .swiftType("[Any]")
             default:
                 assertionFailure() // unhandled case
             }
