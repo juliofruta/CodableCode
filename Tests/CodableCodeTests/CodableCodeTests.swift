@@ -181,4 +181,65 @@ final class CodableCodeTests: XCTestCase {
             )
         )
     }
+    
+    func test4LevelsDeep() {
+        test(
+        """
+        {
+          "level1": {
+            "key1": "value1",
+            "level2": {
+              "key2": "value2",
+              "level3": {
+                "key3": "value3",
+                "level4": {
+                  "key4": "value4"
+                }
+              }
+            }
+          }
+        }
+        """,
+            .success(
+                """
+                struct <#SomeType#>: Codable {
+                    let level1: Level1
+                    enum CodingKeys: String, CodingKey {
+                        case level1 = "level1"
+                    }
+                }
+                struct Level1: Codable {
+                    let key1: String
+                    let level2: Level2
+                    enum CodingKeys: String, CodingKey {
+                        case key1 = "key1"
+                        case level2 = "level2"
+                    }
+                }
+                struct Level2: Codable {
+                    let key2: String
+                    let level3: Level3
+                    enum CodingKeys: String, CodingKey {
+                        case key2 = "key2"
+                        case level3 = "level3"
+                    }
+                }
+                struct Level3: Codable {
+                    let key3: String
+                    let level4: Level4
+                    enum CodingKeys: String, CodingKey {
+                        case key3 = "key3"
+                        case level4 = "level4"
+                    }
+                }
+                struct Level4: Codable {
+                    let key4: String
+                    enum CodingKeys: String, CodingKey {
+                        case key4 = "key4"
+                    }
+                }
+                """
+            )
+        )
+    }
 }
