@@ -202,11 +202,9 @@ extension String {
         let arrayOfTypes = try jsonObjects.compactMap(TypeOption.type(for:))
         let types = Set<TypeOption>(arrayOfTypes)
         
-        // write the type
-        var swiftCode = ""
         
         if types.count == 0 {
-            swiftCode += "[Any]"
+            return "[Any]"
         } else if types.count == 1 {
             var typeName = ""
             switch types.first! {
@@ -215,7 +213,7 @@ extension String {
             case .productType(_):
                 typeName = key.asType
             }
-            swiftCode += "[\(typeName)]"
+            return "[\(typeName)]"
         } else if types.count > 1 {
             
             let containsSwiftType = types.contains { type in
@@ -237,19 +235,21 @@ extension String {
             }
             
             if !containsSwiftType && !containsProductType {
-                assertionFailure("This case is not possible")
+                assertionFailure("Impossible case")
             }
-            if containsSwiftType && !containsProductType {
-                swiftCode += "[Any]" // TODO: Remove [Any] if possible
+            else if containsSwiftType && !containsProductType {
+                return "[Any]" // TODO: Remove [Any] if possible
             }
-            if !containsSwiftType && containsProductType {
-                swiftCode += "[\(key.asType)]"
+            else if !containsSwiftType && containsProductType {
+                return "[\(key.asType)]"
             }
-            if containsSwiftType && containsProductType {
-                swiftCode += "[Any]" // TODO: Remove [Any] if possible
+            else if containsSwiftType && containsProductType {
+                return "[Any]" // TODO: Remove [Any] if possible
             }
+            assertionFailure("Impossible case")
         }
-        return swiftCode
+        assertionFailure("Impossible case")
+        return "" //impossible case
     }
     
     /// Infers a product type from the array of json objects
