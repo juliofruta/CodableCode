@@ -106,7 +106,6 @@ struct ProductType: Equatable, Hashable {
                 implementation += ["}"]
                 return implementation.joined(separator: "\n")
             }
-
         return Array(structs.uniqued().sorted())
     }
     
@@ -118,6 +117,106 @@ struct ProductType: Equatable, Hashable {
     init(name: String, properties: [Property]) {
         self.name = name
         self.properties = properties
+    }
+    
+    static func productType(name: String, dictionary: [String: Any]) throws -> ProductType {
+        let properties = try dictionary
+            .sorted(by: { $0.0 < $1.0 })
+            .map { (pair) -> ProductType.Property in
+                let (key, value) = pair
+                var typeName = "Any"
+                var relatedType: ProductType?
+                switch value {
+                case _ as Bool:
+                    typeName = SwiftType.Bool.rawValue
+                case _ as String:
+                    typeName = SwiftType.String.rawValue
+                case _ as Decimal:
+                    typeName = SwiftType.Decimal.rawValue
+                case _ as Double:
+                    typeName = SwiftType.Double.rawValue
+                case _ as Int:
+                    typeName = SwiftType.Int.rawValue
+                case let jsonObject as [String: Any]:
+                    let productType = try ProductType.productType(name: key, dictionary: jsonObject)
+                    typeName = productType.name
+                    relatedType = productType
+                case let jsonObjects as [Any]:
+                    // if we could get a codableType and a name
+                    // Aqui esto esta raro... que le paso un arreglo y me regresa un product type.
+                    if let productType = try ProductType(jsonObjects: jsonObjects, key: key) {
+                        typeName = productType.name
+                        relatedType = productType
+                    }
+                    else {
+                        typeName = try arrayTypeName(jsonObjects: jsonObjects, key: key)
+                    }
+                default:
+                    // TODO: Add more cases like dates
+                    break
+                }
+                return .init(symbol: key, typeName: typeName, isOptional: false, relatedType: relatedType)
+            }
+        return .init(name: name, properties: properties)
+    }
+    
+    /// Get the name of the Array type.
+    /// - Parameters:
+    ///   - anyArray: The array of json objects.
+    ///   - key: The key of the array. This is used to infer the name of the Array type.
+    /// - Returns: The type name of the array as a String
+    static func arrayTypeName(jsonObjects: [Any], key: String) throws -> String {
+        let arrayOfTypes = try jsonObjects.compactMap(TypeOption.type(for:))
+        let types = Set<TypeOption>(arrayOfTypes)
+        
+        
+        if types.count == 0 {
+            return "[Any]"
+        } else if types.count == 1 {
+            var typeName = ""
+            switch types.first! {
+            case .swiftType(let swiftType):
+                typeName = swiftType.rawValue
+            case .productType(_):
+                typeName = key.asType
+            }
+            return "[\(typeName)]"
+        } else if types.count > 1 {
+            
+            let containsSwiftType = types.contains { type in
+                switch type {
+                case .swiftType(_):
+                    return true
+                case .productType(_):
+                    return false
+                }
+            }
+            
+            let containsProductType = types.contains { type in
+                switch type {
+                case .swiftType(_):
+                    return false
+                case .productType(_):
+                    return true
+                }
+            }
+            
+            if !containsSwiftType && !containsProductType {
+                assertionFailure("Impossible case")
+            }
+            else if containsSwiftType && !containsProductType {
+                return "[Any]" // TODO: Remove [Any] if possible
+            }
+            else if !containsSwiftType && containsProductType {
+                return "[\(key.asType)]"
+            }
+            else if containsSwiftType && containsProductType {
+                return "[Any]" // TODO: Remove [Any] if possible
+            }
+            assertionFailure("Impossible case")
+        }
+        assertionFailure("Impossible case")
+        return "" //impossible case
     }
     
     /// Infers a product type from the array of json objects
@@ -193,14 +292,12 @@ enum TypeOption: Hashable, Equatable {
         case _ as Int:
             swiftOrCodableType = .swiftType(.Int)
         case let dictionary as [String: Any]: // for dictionaries
-            let data = try JSONSerialization.data(withJSONObject: dictionary, options: [])
-            let string = String(data: data, encoding: .utf8)!
-            let codableType = try string.productType(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON")
-            swiftOrCodableType = .productType(codableType)
+            let productType = try ProductType.productType(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON", dictionary: dictionary)
+            swiftOrCodableType = .productType(productType)
 //            case let arrayOfAny as [Any]:
 //                arrayOfAny.count
 //            case _ as [Any]:
-//            swiftOrCodableType =  // TODO: Remove [Any] if possible
+//            swiftOrCodableType = .swiftType(.Bool)  // TODO: Remove [Any] if possible
         default:
             assertionFailure() // unhandled case
         }
@@ -243,129 +340,27 @@ extension String {
         Identation.fourSpaces.rawValue + self
     }
     
-    /// Get the name of the Array type.
-    /// - Parameters:
-    ///   - anyArray: The array of json objects.
-    ///   - key: The key of the array. This is used to infer the name of the Array type.
-    /// - Returns: The type name of the array as a String
-    func arrayTypeName(
-        jsonObjects: [Any],
-        key: String
-    ) throws -> String {
-        let arrayOfTypes = try jsonObjects.compactMap(TypeOption.type(for:))
-        let types = Set<TypeOption>(arrayOfTypes)
-        
-        
-        if types.count == 0 {
-            return "[Any]"
-        } else if types.count == 1 {
-            var typeName = ""
-            switch types.first! {
-            case .swiftType(let swiftType):
-                typeName = swiftType.rawValue
-            case .productType(_):
-                typeName = key.asType
-            }
-            return "[\(typeName)]"
-        } else if types.count > 1 {
-            
-            let containsSwiftType = types.contains { type in
-                switch type {
-                case .swiftType(_):
-                    return true
-                case .productType(_):
-                    return false
-                }
-            }
-            
-            let containsProductType = types.contains { type in
-                switch type {
-                case .swiftType(_):
-                    return false
-                case .productType(_):
-                    return true
-                }
-            }
-            
-            if !containsSwiftType && !containsProductType {
-                assertionFailure("Impossible case")
-            }
-            else if containsSwiftType && !containsProductType {
-                return "[Any]" // TODO: Remove [Any] if possible
-            }
-            else if !containsSwiftType && containsProductType {
-                return "[\(key.asType)]"
-            }
-            else if containsSwiftType && containsProductType {
-                return "[Any]" // TODO: Remove [Any] if possible
-            }
-            assertionFailure("Impossible case")
-        }
-        assertionFailure("Impossible case")
-        return "" //impossible case
-    }
-    
     /// Compiles a valid JSON to a Codable Swift Product Type as in the following Grammar spec: https://www.json.org/json-en.html
     /// - Parameter json: A valid JSON string
     /// - Throws: JSON errors or errors in the library.
     /// - Returns: The string of the type produced by the JSON
-    func productType(name: String) throws -> ProductType {
+    func dictionary() throws -> [String: Any] {
         guard let data = data(using: .utf8) else {
             throw Error.invalidData
         }        
         guard let dictionary = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
             throw Error.unsupportedArrayAtRootLevel
         }
-        let properties = try dictionary
-            .sorted(by: { $0.0 < $1.0 })
-            .map { (pair) -> ProductType.Property in
-                let (key, value) = pair
-                
-                var typeName = "Any"
-                var relatedType: ProductType?
-                
-                switch value {
-                case _ as Bool:
-                    typeName = SwiftType.Bool.rawValue
-                case _ as String:
-                    typeName = SwiftType.String.rawValue
-                case _ as Decimal:
-                    typeName = SwiftType.Decimal.rawValue
-                case _ as Double:
-                    typeName = SwiftType.Double.rawValue
-                case _ as Int:
-                    typeName = SwiftType.Int.rawValue
-                case let jsonObject as [String: Any]:
-                    let objectData = try JSONSerialization.data(withJSONObject: jsonObject, options: [])
-                    let objectString = String(data: objectData, encoding: .utf8)!
-                    let productType = try objectString.productType(name: key)
-                    typeName = productType.name
-                    relatedType = productType
-                case let jsonObjects as [Any]:
-                    // if we could get a codableType and a name
-                    // Aqui esto esta raro... que le paso un arreglo y me regresa un product type.
-                    if let productType = try ProductType(jsonObjects: jsonObjects, key: key) {
-                        typeName = productType.name
-                        relatedType = productType
-                    }
-                    else {
-                        typeName = try arrayTypeName(jsonObjects: jsonObjects, key: key)
-                    }
-                default:
-                    // TODO: Add more cases like dates
-                    break
-                }
-                return .init(symbol: key, typeName: typeName, isOptional: false, relatedType: relatedType)
-                
-            }
-        return .init(name: name, properties: properties)
+        return dictionary
     }
     
     /// Get the Codable code from the provided JSON
     /// - Parameter name: The name of the struct, if no struct is provided you'll get a placeholder of the type <#SomeType#>
     /// - Returns: The codable code as a string.
     public func codableCode(name: String = "<#SomeType#>") throws -> String {
-        return try productType(name: name).description
+        let dictionary = try dictionary()
+        let productType = try ProductType.productType(name: name, dictionary: dictionary)
+        return productType.description
     }
 }
 
