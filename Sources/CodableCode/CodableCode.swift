@@ -115,12 +115,17 @@ struct ProductType: Equatable, Hashable {
         return description
     }
     
+    init(name: String, properties: [Property]) {
+        self.name = name
+        self.properties = properties
+    }
+    
     /// Infers a product type from the array of json objects
     /// - Parameters:
     ///   - anyArray: Array of JSON Objects
     ///   - key: Key for the codable type
     /// - Returns: An optional codable type for the JSON objects
-    static func productType(jsonObjects: [Any], key: String) throws -> ProductType? {
+    init?(jsonObjects: [Any], key: String) throws {
         let arrayOfTypes = try jsonObjects.compactMap(TypeOption.type(for:))
         let setOfTypes = Set<TypeOption>(arrayOfTypes)
         let productTypes = setOfTypes
@@ -159,7 +164,8 @@ struct ProductType: Equatable, Hashable {
                     relatedType: key.relatedType
                 )
         }
-        return .init(name: key.asType, properties: propertiesWithOptionalSupport)
+        self.name = key.asType
+        self.properties = propertiesWithOptionalSupport
     }
 }
 
@@ -338,7 +344,7 @@ extension String {
                 case let jsonObjects as [Any]:
                     // if we could get a codableType and a name
                     // Aqui esto esta raro... que le paso un arreglo y me regresa un product type.
-                    if let productType = try ProductType.productType(jsonObjects: jsonObjects, key: key) {
+                    if let productType = try ProductType(jsonObjects: jsonObjects, key: key) {
                         typeName = productType.name
                         relatedType = productType
                     }
