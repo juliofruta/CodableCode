@@ -147,9 +147,14 @@ extension String {
         case Int = "Int"
     }
     
+    struct SumType: Equatable, Hashable {
+        let string = "enum Tipo {"
+    }
+    
     enum TypeOption: Hashable, Equatable {
         case swiftType(SwiftType)
         case productType(ProductType)
+//        case sumType(SumType) // TODO: Add support for enums.
         
         /// Returns Swift Type or Codable type
         /// - Parameter jsonObject: Any object that
