@@ -137,6 +137,7 @@ extension String {
         Identation.fourSpaces.rawValue + self
     }
     
+    /// Swift types as strings.
     enum SwiftType: String {
         case String = "String"
         case Bool = "Bool"
