@@ -25,8 +25,8 @@ struct ProductType: Equatable, Hashable {
     /// A representation of a property of a type
     struct Property: Equatable, Hashable {
         var letOrVar = "let"
-        var symbol = "symbol"
-        var typeName = "Any"
+        var symbol = "symbol" // Sentinel value
+        var typeName = "Any" // Sentinel vlaue
         var isOptional = false
         var relatedType: ProductType?
     }
