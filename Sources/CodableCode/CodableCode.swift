@@ -154,20 +154,11 @@ extension String {
         /// Returns Swift Type or Codable type
         /// - Parameter jsonObject: Any object that
         /// - Returns: Either a swiftType or a Codable Type
-        static func swiftOrCodableType(for jsonObject: Any) throws -> TypeOption? {
+        static func type(for jsonObject: Any) throws -> TypeOption? {
             var swiftOrCodableType: TypeOption?
             
-            // check what type is each element of the array
+            // check what type is the JSON object
             switch jsonObject {
-            case let dictionary as [String: Any]: // for dictionaries
-                let data = try JSONSerialization.data(withJSONObject: dictionary, options: [])
-                let string = String(data: data, encoding: .utf8)!
-                let codableType = try string.productType(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON")
-                swiftOrCodableType = .productType(codableType)
-//            case let arrayOfAny as [Any]:
-//                arrayOfAny.count
-//            case _ as [Any]:
-//                swiftOrCodableType = .swiftType() // TODO: Remove [Any] if possible
             case _ as String:
                 swiftOrCodableType = .swiftType(.String)
             case _ as Bool:
@@ -178,6 +169,15 @@ extension String {
                 swiftOrCodableType = .swiftType(.Double)
             case _ as Int:
                 swiftOrCodableType = .swiftType(.Int)
+            case let dictionary as [String: Any]: // for dictionaries
+                let data = try JSONSerialization.data(withJSONObject: dictionary, options: [])
+                let string = String(data: data, encoding: .utf8)!
+                let codableType = try string.productType(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON")
+                swiftOrCodableType = .productType(codableType)
+//            case let arrayOfAny as [Any]:
+//                arrayOfAny.count
+//            case _ as [Any]:
+//                swiftOrCodableType = .swiftType() // TODO: Remove [Any] if possible
             default:
                 assertionFailure() // unhandled case
             }
@@ -191,10 +191,10 @@ extension String {
     ///   - key: The key of the array. This is used to infer the name of the Array type.
     /// - Returns: Array type name.
     func arrayTypeName(
-        anyArray: [Any],
+        jsonObjects: [Any],
         key: String
     ) throws -> String {
-        let arrayOfSwiftOrCodableTypes = try anyArray.compactMap(TypeOption.swiftOrCodableType(for:))
+        let arrayOfSwiftOrCodableTypes = try jsonObjects.compactMap(TypeOption.type(for:))
         let swiftOrCodableTypes = Set<TypeOption>(arrayOfSwiftOrCodableTypes)
         
         // write the type
@@ -247,43 +247,47 @@ extension String {
         return swiftCode
     }
     
-    /// Returns a Optional Codable type
+    /// Infers a product type from the array of json objects
     /// - Parameters:
     ///   - anyArray: Array of JSON Objects
     ///   - key: Key for the codable type
     /// - Returns: An optional codable type for the JSON objects
-    func productType(
-        anyArray: [Any],
-        key: String
-    ) throws -> ProductType? {
-        let arrayOfSwiftOrCodableTypes = try anyArray.compactMap(TypeOption.swiftOrCodableType(for:))
-        let swiftOrCodableTypes = Set<TypeOption>(arrayOfSwiftOrCodableTypes)
-        
-        let codableTypes = swiftOrCodableTypes
+    func productType(jsonObjects: [Any], key: String) throws -> ProductType? {
+        let arrayOfTypes = try jsonObjects.compactMap(TypeOption.type(for:))
+        let setOfTypes = Set<TypeOption>(arrayOfTypes)
+        let productTypes = setOfTypes
             .compactMap { (nameOrCodableTypes) -> ProductType? in
                 switch nameOrCodableTypes {
                 case .swiftType(_):
                     return nil
-                case .productType(let codableType):
-                    return codableType
+                case .productType(let productType):
+                    return productType
                 }
             }
         
-        guard !codableTypes.isEmpty else {
+        guard !productTypes.isEmpty else {
             return nil
         }
-        let properties = codableTypes.map { $0.properties }
+        
+        let properties = productTypes.map { $0.properties }
         let allProperties = properties.flatMap { $0 }
+        
+        // Check if we have optionals
+
+        // We are going to keep a property count to see what propery does not repeat
         var propertyCount = [ProductType.Property: Int]()
+        
+        // for each property increase the count
         allProperties.forEach { property in
             propertyCount[property] = propertyCount[property, default: 0] + 1
         }
+        
         let propertiesWithOptionalSupport = propertyCount.map { (key: ProductType.Property, value: Int) -> ProductType.Property in
                 .init(
                     letOrVar: key.letOrVar,
                     symbol: key.symbol,
                     typeName: key.typeName,
-                    isOptional: value != codableTypes.count,
+                    isOptional: value != productTypes.count, // if the item is not in all the product types then is optional.
                     relatedType: key.relatedType
                 )
         }
@@ -323,17 +327,18 @@ extension String {
                 case let jsonObject as [String: Any]:
                     let objectData = try JSONSerialization.data(withJSONObject: jsonObject, options: [])
                     let objectString = String(data: objectData, encoding: .utf8)!
-                    let codableType = try objectString.productType(name: key)
-                    typeName = codableType.name
-                    relatedType = codableType
-                case let anyArray as [Any]:
+                    let productType = try objectString.productType(name: key)
+                    typeName = productType.name
+                    relatedType = productType
+                case let jsonObjects as [Any]:
                     // if we could get a codableType and a name
-                    if let codableType = try productType(anyArray: anyArray, key: key) {
-                        typeName = codableType.name
-                        relatedType = codableType
+                    // Aqui esto esta raro... que le paso un arreglo y me regresa un product type.
+                    if let productType = try productType(jsonObjects: jsonObjects, key: key) {
+                        typeName = productType.name
+                        relatedType = productType
                     }
                     else {
-                        typeName = try arrayTypeName(anyArray: anyArray, key: key)
+                        typeName = try arrayTypeName(jsonObjects: jsonObjects, key: key)
                     }
                 default:
                     // TODO: Add more cases like dates
