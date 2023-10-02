@@ -114,6 +114,105 @@ struct ProductType: Equatable, Hashable {
         let description = structs.joined(separator: "\n")
         return description
     }
+    
+    /// Infers a product type from the array of json objects
+    /// - Parameters:
+    ///   - anyArray: Array of JSON Objects
+    ///   - key: Key for the codable type
+    /// - Returns: An optional codable type for the JSON objects
+    static func productType(jsonObjects: [Any], key: String) throws -> ProductType? {
+        let arrayOfTypes = try jsonObjects.compactMap(TypeOption.type(for:))
+        let setOfTypes = Set<TypeOption>(arrayOfTypes)
+        let productTypes = setOfTypes
+            .compactMap { (nameOrCodableTypes) -> ProductType? in
+                switch nameOrCodableTypes {
+                case .swiftType(_):
+                    return nil
+                case .productType(let productType):
+                    return productType
+                }
+            }
+        
+        guard !productTypes.isEmpty else {
+            return nil
+        }
+        
+        let properties = productTypes.map { $0.properties }
+        let allProperties = properties.flatMap { $0 }
+        
+        // Check if we have optionals
+
+        // We are going to keep a property count to see what propery does not repeat
+        var propertyCount = [ProductType.Property: Int]()
+        
+        // for each property increase the count
+        allProperties.forEach { property in
+            propertyCount[property] = propertyCount[property, default: 0] + 1
+        }
+        
+        let propertiesWithOptionalSupport = propertyCount.map { (key: ProductType.Property, value: Int) -> ProductType.Property in
+                .init(
+                    letOrVar: key.letOrVar,
+                    symbol: key.symbol,
+                    typeName: key.typeName,
+                    isOptional: value != productTypes.count, // if the item is not in all the product types then is optional.
+                    relatedType: key.relatedType
+                )
+        }
+        return .init(name: key.asType, properties: propertiesWithOptionalSupport)
+    }
+}
+
+enum TypeOption: Hashable, Equatable {
+    case swiftType(SwiftType)
+    case productType(ProductType)
+//        case sumType(SumType) // TODO: Add support for enums.
+    
+    /// Returns Swift Type or Codable type
+    /// - Parameter jsonObject: Any object that
+    /// - Returns: Either a swiftType or a Codable Type
+    static func type(for jsonObject: Any) throws -> TypeOption? {
+        var swiftOrCodableType: TypeOption?
+        
+        // check what type is the JSON object
+        switch jsonObject {
+        case _ as String:
+            swiftOrCodableType = .swiftType(.String)
+        case _ as Bool:
+            swiftOrCodableType = .swiftType(.Bool)
+        case _ as Decimal:
+            swiftOrCodableType = .swiftType(.Decimal)
+        case _ as Double:
+            swiftOrCodableType = .swiftType(.Double)
+        case _ as Int:
+            swiftOrCodableType = .swiftType(.Int)
+        case let dictionary as [String: Any]: // for dictionaries
+            let data = try JSONSerialization.data(withJSONObject: dictionary, options: [])
+            let string = String(data: data, encoding: .utf8)!
+            let codableType = try string.productType(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON")
+            swiftOrCodableType = .productType(codableType)
+//            case let arrayOfAny as [Any]:
+//                arrayOfAny.count
+//            case _ as [Any]:
+//            swiftOrCodableType =  // TODO: Remove [Any] if possible
+        default:
+            assertionFailure() // unhandled case
+        }
+        return swiftOrCodableType
+    }
+}
+
+/// Swift types as strings.
+enum SwiftType: String {
+    case String = "String"
+    case Bool = "Bool"
+    case Decimal = "Decimal"
+    case Double = "Double"
+    case Int = "Int"
+}
+
+struct SumType: Equatable, Hashable {
+    let string = "enum Tipo {}"
 }
 
 // Make this system as anti fragile as possible! The more automated this is the better. I don't want to update any API manually ever again!
@@ -136,58 +235,6 @@ extension String {
     /// Idented string
     var idented: String {
         Identation.fourSpaces.rawValue + self
-    }
-    
-    /// Swift types as strings.
-    enum SwiftType: String {
-        case String = "String"
-        case Bool = "Bool"
-        case Decimal = "Decimal"
-        case Double = "Double"
-        case Int = "Int"
-    }
-    
-    struct SumType: Equatable, Hashable {
-        let string = "enum Tipo {}"
-    }
-    
-    enum TypeOption: Hashable, Equatable {
-        case swiftType(SwiftType)
-        case productType(ProductType)
-//        case sumType(SumType) // TODO: Add support for enums.
-        
-        /// Returns Swift Type or Codable type
-        /// - Parameter jsonObject: Any object that
-        /// - Returns: Either a swiftType or a Codable Type
-        static func type(for jsonObject: Any) throws -> TypeOption? {
-            var swiftOrCodableType: TypeOption?
-            
-            // check what type is the JSON object
-            switch jsonObject {
-            case _ as String:
-                swiftOrCodableType = .swiftType(.String)
-            case _ as Bool:
-                swiftOrCodableType = .swiftType(.Bool)
-            case _ as Decimal:
-                swiftOrCodableType = .swiftType(.Decimal)
-            case _ as Double:
-                swiftOrCodableType = .swiftType(.Double)
-            case _ as Int:
-                swiftOrCodableType = .swiftType(.Int)
-            case let dictionary as [String: Any]: // for dictionaries
-                let data = try JSONSerialization.data(withJSONObject: dictionary, options: [])
-                let string = String(data: data, encoding: .utf8)!
-                let codableType = try string.productType(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON")
-                swiftOrCodableType = .productType(codableType)
-//            case let arrayOfAny as [Any]:
-//                arrayOfAny.count
-//            case _ as [Any]:
-//                swiftOrCodableType = .swiftType() // TODO: Remove [Any] if possible
-            default:
-                assertionFailure() // unhandled case
-            }
-            return swiftOrCodableType
-        }
     }
     
     /// Get the name of the Array type.
@@ -252,53 +299,6 @@ extension String {
         return "" //impossible case
     }
     
-    /// Infers a product type from the array of json objects
-    /// - Parameters:
-    ///   - anyArray: Array of JSON Objects
-    ///   - key: Key for the codable type
-    /// - Returns: An optional codable type for the JSON objects
-    func productType(jsonObjects: [Any], key: String) throws -> ProductType? {
-        let arrayOfTypes = try jsonObjects.compactMap(TypeOption.type(for:))
-        let setOfTypes = Set<TypeOption>(arrayOfTypes)
-        let productTypes = setOfTypes
-            .compactMap { (nameOrCodableTypes) -> ProductType? in
-                switch nameOrCodableTypes {
-                case .swiftType(_):
-                    return nil
-                case .productType(let productType):
-                    return productType
-                }
-            }
-        
-        guard !productTypes.isEmpty else {
-            return nil
-        }
-        
-        let properties = productTypes.map { $0.properties }
-        let allProperties = properties.flatMap { $0 }
-        
-        // Check if we have optionals
-
-        // We are going to keep a property count to see what propery does not repeat
-        var propertyCount = [ProductType.Property: Int]()
-        
-        // for each property increase the count
-        allProperties.forEach { property in
-            propertyCount[property] = propertyCount[property, default: 0] + 1
-        }
-        
-        let propertiesWithOptionalSupport = propertyCount.map { (key: ProductType.Property, value: Int) -> ProductType.Property in
-                .init(
-                    letOrVar: key.letOrVar,
-                    symbol: key.symbol,
-                    typeName: key.typeName,
-                    isOptional: value != productTypes.count, // if the item is not in all the product types then is optional.
-                    relatedType: key.relatedType
-                )
-        }
-        return .init(name: key.asType, properties: propertiesWithOptionalSupport)
-    }
-    
     /// Compiles a valid JSON to a Codable Swift Product Type as in the following Grammar spec: https://www.json.org/json-en.html
     /// - Parameter json: A valid JSON string
     /// - Throws: JSON errors or errors in the library.
@@ -338,7 +338,7 @@ extension String {
                 case let jsonObjects as [Any]:
                     // if we could get a codableType and a name
                     // Aqui esto esta raro... que le paso un arreglo y me regresa un product type.
-                    if let productType = try productType(jsonObjects: jsonObjects, key: key) {
+                    if let productType = try ProductType.productType(jsonObjects: jsonObjects, key: key) {
                         typeName = productType.name
                         relatedType = productType
                     }
