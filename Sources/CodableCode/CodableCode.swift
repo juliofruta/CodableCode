@@ -241,7 +241,7 @@ extension String {
     /// - Parameters:
     ///   - anyArray: The array of json objects.
     ///   - key: The key of the array. This is used to infer the name of the Array type.
-    /// - Returns: The type name of the array.
+    /// - Returns: The type name of the array as a String
     func arrayTypeName(
         jsonObjects: [Any],
         key: String
