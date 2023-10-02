@@ -148,7 +148,7 @@ extension String {
     }
     
     struct SumType: Equatable, Hashable {
-        let string = "enum Tipo {"
+        let string = "enum Tipo {}"
     }
     
     enum TypeOption: Hashable, Equatable {
@@ -194,32 +194,32 @@ extension String {
     /// - Parameters:
     ///   - anyArray: The array of json objects.
     ///   - key: The key of the array. This is used to infer the name of the Array type.
-    /// - Returns: Array type name.
+    /// - Returns: The type name of the array.
     func arrayTypeName(
         jsonObjects: [Any],
         key: String
     ) throws -> String {
-        let arrayOfSwiftOrCodableTypes = try jsonObjects.compactMap(TypeOption.type(for:))
-        let swiftOrCodableTypes = Set<TypeOption>(arrayOfSwiftOrCodableTypes)
+        let arrayOfTypes = try jsonObjects.compactMap(TypeOption.type(for:))
+        let types = Set<TypeOption>(arrayOfTypes)
         
         // write the type
         var swiftCode = ""
         
-        if swiftOrCodableTypes.count == 0 {
+        if types.count == 0 {
             swiftCode += "[Any]"
-        } else if swiftOrCodableTypes.count == 1 {
+        } else if types.count == 1 {
             var typeName = ""
-            switch swiftOrCodableTypes.first! {
+            switch types.first! {
             case .swiftType(let swiftType):
                 typeName = swiftType.rawValue
             case .productType(_):
                 typeName = key.asType
             }
             swiftCode += "[\(typeName)]"
-        } else if swiftOrCodableTypes.count > 1 {
+        } else if types.count > 1 {
             
-            let containsNames = swiftOrCodableTypes.contains { nameOrCodatbleType in
-                switch nameOrCodatbleType {
+            let containsSwiftType = types.contains { type in
+                switch type {
                 case .swiftType(_):
                     return true
                 case .productType(_):
@@ -227,8 +227,8 @@ extension String {
                 }
             }
             
-            let containsImplementations = swiftOrCodableTypes.contains { nameOrCodableType in
-                switch nameOrCodableType {
+            let containsProductType = types.contains { type in
+                switch type {
                 case .swiftType(_):
                     return false
                 case .productType(_):
@@ -236,16 +236,16 @@ extension String {
                 }
             }
             
-            if !containsNames && !containsImplementations {
+            if !containsSwiftType && !containsProductType {
                 assertionFailure("This case is not possible")
             }
-            if containsNames && !containsImplementations {
+            if containsSwiftType && !containsProductType {
                 swiftCode += "[Any]" // TODO: Remove [Any] if possible
             }
-            if !containsNames && containsImplementations {
+            if !containsSwiftType && containsProductType {
                 swiftCode += "[\(key.asType)]"
             }
-            if containsNames && containsImplementations {
+            if containsSwiftType && containsProductType {
                 swiftCode += "[Any]" // TODO: Remove [Any] if possible
             }
         }
