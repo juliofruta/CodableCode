@@ -3,6 +3,7 @@ import Algorithms
 
 enum Error: Swift.Error {
     case invalidData
+    case unsupportedArrayAtRootLevel
 }
 
 enum Identation: String {
@@ -161,7 +162,7 @@ extension String {
             case let dictionary as [String: Any]: // for dictionaries
                 let data = try JSONSerialization.data(withJSONObject: dictionary, options: [])
                 let string = String(data: data, encoding: .utf8)!
-                let codableType = try string.codableType(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON")
+                let codableType = try string.productType(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON")
                 swiftOrCodableType = .productType(codableType)
 //            case let arrayOfAny as [Any]:
 //                arrayOfAny.count
@@ -251,7 +252,7 @@ extension String {
     ///   - anyArray: Array of JSON Objects
     ///   - key: Key for the codable type
     /// - Returns: An optional codable type for the JSON objects
-    func codableType(
+    func productType(
         anyArray: [Any],
         key: String
     ) throws -> ProductType? {
@@ -289,16 +290,16 @@ extension String {
         return .init(name: key.asType, properties: propertiesWithOptionalSupport)
     }
     
-    /// Compiles a valid JSON to a Codable Swift Type as in the following Grammar spec: https://www.json.org/json-en.html
+    /// Compiles a valid JSON to a Codable Swift Product Type as in the following Grammar spec: https://www.json.org/json-en.html
     /// - Parameter json: A valid JSON string
     /// - Throws: JSON errors or errors in the library.
     /// - Returns: The string of the type produced by the JSON
-    func codableType(name: String) throws -> ProductType {
+    func productType(name: String) throws -> ProductType {
         guard let data = data(using: .utf8) else {
             throw Error.invalidData
         }        
         guard let dictionary = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
-            throw Error.invalidData
+            throw Error.unsupportedArrayAtRootLevel
         }
         let properties = try dictionary
             .sorted(by: { $0.0 < $1.0 })
@@ -322,12 +323,12 @@ extension String {
                 case let jsonObject as [String: Any]:
                     let objectData = try JSONSerialization.data(withJSONObject: jsonObject, options: [])
                     let objectString = String(data: objectData, encoding: .utf8)!
-                    let codableType = try objectString.codableType(name: key)
+                    let codableType = try objectString.productType(name: key)
                     typeName = codableType.name
                     relatedType = codableType
                 case let anyArray as [Any]:
                     // if we could get a codableType and a name
-                    if let codableType = try codableType(anyArray: anyArray, key: key) {
+                    if let codableType = try productType(anyArray: anyArray, key: key) {
                         typeName = codableType.name
                         relatedType = codableType
                     }
@@ -348,7 +349,7 @@ extension String {
     /// - Parameter name: The name of the struct, if no struct is provided you'll get a placeholder of the type <#SomeType#>
     /// - Returns: The codable code as a string.
     public func codableCode(name: String = "<#SomeType#>") throws -> String {
-        return try codableType(name: name).description
+        return try productType(name: name).description
     }
 }
 
