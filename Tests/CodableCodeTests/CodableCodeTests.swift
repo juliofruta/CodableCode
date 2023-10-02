@@ -2,7 +2,7 @@ import XCTest
 import CustomDump
 @testable import CodableCode
 
-final class CodableCodeTests: XCTestCase {
+extension XCTestCase {
     
     enum Error: Swift.Error {
         case resultNotInitialized
@@ -43,6 +43,9 @@ final class CodableCodeTests: XCTestCase {
             )
         }
     }
+}
+
+final class CodableCodeTests: XCTestCase {
     
     /// Test that we are returning an error if an empty string is passed.
     func testEmptyJSON() {

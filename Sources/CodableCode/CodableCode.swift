@@ -15,6 +15,9 @@ enum Identation: String {
 /// For example:
 /// struct A {
 ///    let a: Bool
+///    CodingKeys {
+///        case a = "a"
+///    }
 /// }
 struct CodableType: Equatable, Hashable {
     
@@ -134,8 +137,16 @@ extension String {
         Identation.fourSpaces.rawValue + self
     }
     
+    enum SwiftType: String {
+        case String = "String"
+        case Bool = "Bool"
+        case Decimal = "Decimal"
+        case Double = "Double"
+        case Int = "Int"
+    }
+    
     enum SwiftOrCodableType: Hashable, Equatable {
-        case swiftType(String)
+        case swiftType(SwiftType)
         case codableType(CodableType)
         
         /// Returns Swift Type or Codable type
@@ -151,18 +162,21 @@ extension String {
                 let string = String(data: data, encoding: .utf8)!
                 let codableType = try string.codableType(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON")
                 swiftOrCodableType = .codableType(codableType)
+//            case let arrayOfAny as [Any]:
+                
+//                arrayOfAny.count
+            case _ as [Any]:
+                swiftOrCodableType = .swiftType(.String) // TODO: Remove [Any] if possible
             case _ as String:
-                swiftOrCodableType = .swiftType("String")
+                swiftOrCodableType = .swiftType(.String)
             case _ as Bool:
-                swiftOrCodableType = .swiftType("Bool")
+                swiftOrCodableType = .swiftType(.Bool)
             case _ as Decimal:
-                swiftOrCodableType = .swiftType("Decimal")
+                swiftOrCodableType = .swiftType(.Decimal)
             case _ as Double:
-                swiftOrCodableType = .swiftType("Double")
+                swiftOrCodableType = .swiftType(.Double)
             case _ as Int:
-                swiftOrCodableType = .swiftType("Int")
-                //        case _ as [Any]:
-                //            swiftOrCodableType = .swiftType("[Any]") // TODO: Remove [Any] if possible
+                swiftOrCodableType = .swiftType(.Int)
             default:
                 assertionFailure() // unhandled case
             }
@@ -190,8 +204,8 @@ extension String {
         } else if swiftOrCodableTypes.count == 1 {
             var typeName = ""
             switch swiftOrCodableTypes.first! {
-            case .swiftType(let name):
-                typeName = name
+            case .swiftType(let swiftType):
+                typeName = swiftType.rawValue
             case .codableType(_):
                 typeName = key.asType
             }
@@ -215,6 +229,8 @@ extension String {
                     return true
                 }
             }
+            
+            dump(containsImplementations)
             
             if !containsNames && !containsImplementations {
                 assertionFailure("This case is not possible")
@@ -312,6 +328,7 @@ extension String {
                     typeName = codableType.name
                     relatedType = codableType
                 case let anyArray as [Any]:
+                    // if we could get a codableType and a name
                     if let codableType = try codableType(anyArray: anyArray, key: key) {
                         typeName = codableType.name
                         relatedType = codableType
@@ -335,4 +352,8 @@ extension String {
     public func codableCode(name: String = "<#SomeType#>") throws -> String {
         return try codableType(name: name).description
     }
+}
+
+func dump(file: String = #file, line: Int = #line, _ output: String) {
+    print(">>> \(output) |\t\(file):\(line)")
 }
