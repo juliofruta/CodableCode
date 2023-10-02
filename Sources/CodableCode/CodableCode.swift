@@ -10,8 +10,8 @@ enum Identation: String {
     case twoSpaces = "  "
 }
 
-/// A representation of a type
-/// This is a struct that reptresents a struct
+/// A representation of a product type
+/// This is a struct that reptresents a product type, which can be either a class, struct or actor.
 /// For example:
 /// struct A {
 ///    let a: Bool
@@ -19,7 +19,7 @@ enum Identation: String {
 ///        case a = "a"
 ///    }
 /// }
-struct CodableType: Equatable, Hashable {
+struct ProductType: Equatable, Hashable {
     
     /// A representation of a property of a type
     struct Property: Equatable, Hashable {
@@ -27,7 +27,7 @@ struct CodableType: Equatable, Hashable {
         var symbol = "symbol"
         var typeName = "Any"
         var isOptional = false
-        var relatedType: CodableType?
+        var relatedType: ProductType?
     }
     
     /// Whether you are building struct or class
@@ -40,10 +40,10 @@ struct CodableType: Equatable, Hashable {
     let properties: [Property]
     
     /// Unique sub-types in the type
-    var uniqueTypes: [[Property]: CodableType] {
-        var uniqueTypes = [[Property]: CodableType]()
+    var uniqueTypes: [[Property]: ProductType] {
+        var uniqueTypes = [[Property]: ProductType]()
         
-        func fillUniqueTypes(root: CodableType, uniqueTypes: inout [[Property]: CodableType]) {
+        func fillUniqueTypes(root: ProductType, uniqueTypes: inout [[Property]: ProductType]) {
             uniqueTypes[root.properties] = root
             root.properties.forEach { property in
                 if let relatedType = property.relatedType {
@@ -145,15 +145,15 @@ extension String {
         case Int = "Int"
     }
     
-    enum SwiftOrCodableType: Hashable, Equatable {
+    enum TypeOption: Hashable, Equatable {
         case swiftType(SwiftType)
-        case codableType(CodableType)
+        case productType(ProductType)
         
         /// Returns Swift Type or Codable type
         /// - Parameter jsonObject: Any object that
         /// - Returns: Either a swiftType or a Codable Type
-        static func swiftOrCodableType(for jsonObject: Any) throws -> SwiftOrCodableType? {
-            var swiftOrCodableType: SwiftOrCodableType?
+        static func swiftOrCodableType(for jsonObject: Any) throws -> TypeOption? {
+            var swiftOrCodableType: TypeOption?
             
             // check what type is each element of the array
             switch jsonObject {
@@ -161,12 +161,11 @@ extension String {
                 let data = try JSONSerialization.data(withJSONObject: dictionary, options: [])
                 let string = String(data: data, encoding: .utf8)!
                 let codableType = try string.codableType(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON")
-                swiftOrCodableType = .codableType(codableType)
+                swiftOrCodableType = .productType(codableType)
 //            case let arrayOfAny as [Any]:
-                
 //                arrayOfAny.count
-            case _ as [Any]:
-                swiftOrCodableType = .swiftType(.String) // TODO: Remove [Any] if possible
+//            case _ as [Any]:
+//                swiftOrCodableType = .swiftType() // TODO: Remove [Any] if possible
             case _ as String:
                 swiftOrCodableType = .swiftType(.String)
             case _ as Bool:
@@ -193,8 +192,8 @@ extension String {
         anyArray: [Any],
         key: String
     ) throws -> String {
-        let arrayOfSwiftOrCodableTypes = try anyArray.compactMap(SwiftOrCodableType.swiftOrCodableType(for:))
-        let swiftOrCodableTypes = Set<SwiftOrCodableType>(arrayOfSwiftOrCodableTypes)
+        let arrayOfSwiftOrCodableTypes = try anyArray.compactMap(TypeOption.swiftOrCodableType(for:))
+        let swiftOrCodableTypes = Set<TypeOption>(arrayOfSwiftOrCodableTypes)
         
         // write the type
         var swiftCode = ""
@@ -206,7 +205,7 @@ extension String {
             switch swiftOrCodableTypes.first! {
             case .swiftType(let swiftType):
                 typeName = swiftType.rawValue
-            case .codableType(_):
+            case .productType(_):
                 typeName = key.asType
             }
             swiftCode += "[\(typeName)]"
@@ -216,7 +215,7 @@ extension String {
                 switch nameOrCodatbleType {
                 case .swiftType(_):
                     return true
-                case .codableType(_):
+                case .productType(_):
                     return false
                 }
             }
@@ -225,12 +224,10 @@ extension String {
                 switch nameOrCodableType {
                 case .swiftType(_):
                     return false
-                case .codableType(_):
+                case .productType(_):
                     return true
                 }
             }
-            
-            dump(containsImplementations)
             
             if !containsNames && !containsImplementations {
                 assertionFailure("This case is not possible")
@@ -256,16 +253,16 @@ extension String {
     func codableType(
         anyArray: [Any],
         key: String
-    ) throws -> CodableType? {
-        let arrayOfSwiftOrCodableTypes = try anyArray.compactMap(SwiftOrCodableType.swiftOrCodableType(for:))
-        let swiftOrCodableTypes = Set<SwiftOrCodableType>(arrayOfSwiftOrCodableTypes)
+    ) throws -> ProductType? {
+        let arrayOfSwiftOrCodableTypes = try anyArray.compactMap(TypeOption.swiftOrCodableType(for:))
+        let swiftOrCodableTypes = Set<TypeOption>(arrayOfSwiftOrCodableTypes)
         
         let codableTypes = swiftOrCodableTypes
-            .compactMap { (nameOrCodableTypes) -> CodableType? in
+            .compactMap { (nameOrCodableTypes) -> ProductType? in
                 switch nameOrCodableTypes {
                 case .swiftType(_):
                     return nil
-                case .codableType(let codableType):
+                case .productType(let codableType):
                     return codableType
                 }
             }
@@ -275,11 +272,11 @@ extension String {
         }
         let properties = codableTypes.map { $0.properties }
         let allProperties = properties.flatMap { $0 }
-        var propertyCount = [CodableType.Property: Int]()
+        var propertyCount = [ProductType.Property: Int]()
         allProperties.forEach { property in
             propertyCount[property] = propertyCount[property, default: 0] + 1
         }
-        let propertiesWithOptionalSupport = propertyCount.map { (key: CodableType.Property, value: Int) -> CodableType.Property in
+        let propertiesWithOptionalSupport = propertyCount.map { (key: ProductType.Property, value: Int) -> ProductType.Property in
                 .init(
                     letOrVar: key.letOrVar,
                     symbol: key.symbol,
@@ -295,7 +292,7 @@ extension String {
     /// - Parameter json: A valid JSON string
     /// - Throws: JSON errors or errors in the library.
     /// - Returns: The string of the type produced by the JSON
-    func codableType(name: String) throws -> CodableType {
+    func codableType(name: String) throws -> ProductType {
         guard let data = data(using: .utf8) else {
             throw Error.invalidData
         }        
@@ -304,23 +301,23 @@ extension String {
         }
         let properties = try dictionary
             .sorted(by: { $0.0 < $1.0 })
-            .map { (pair) -> CodableType.Property in
+            .map { (pair) -> ProductType.Property in
                 let (key, value) = pair
                 
                 var typeName = "Any"
-                var relatedType: CodableType?
+                var relatedType: ProductType?
                 
                 switch value {
                 case _ as Bool:
-                    typeName = "Bool"
+                    typeName = SwiftType.Bool.rawValue
                 case _ as String:
-                    typeName = "String"
+                    typeName = SwiftType.String.rawValue
                 case _ as Decimal:
-                    typeName = "Decimal"
+                    typeName = SwiftType.Decimal.rawValue
                 case _ as Double:
-                    typeName = "Double"
+                    typeName = SwiftType.Double.rawValue
                 case _ as Int:
-                    typeName = "Int"
+                    typeName = SwiftType.Int.rawValue
                 case let jsonObject as [String: Any]:
                     let objectData = try JSONSerialization.data(withJSONObject: jsonObject, options: [])
                     let objectString = String(data: objectData, encoding: .utf8)!
@@ -354,6 +351,11 @@ extension String {
     }
 }
 
+/// Function used for printing.
+/// - Parameters:
+///   - file: The file at which the function was called from.
+///   - line: The line at whic the function was called from.
+///   - output: The string to be printed.
 func dump(file: String = #file, line: Int = #line, _ output: String) {
     print(">>> \(output) |\t\(file):\(line)")
 }
