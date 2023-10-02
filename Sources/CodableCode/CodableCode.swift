@@ -180,6 +180,8 @@ struct ProductType: Equatable, Hashable {
                 typeName = swiftType.rawValue
             case .productType(_):
                 typeName = key.asType
+            case .sumType(_):
+                typeName = key.asType
             }
             return "[\(typeName)]"
         } else if types.count > 1 {
@@ -190,6 +192,8 @@ struct ProductType: Equatable, Hashable {
                     return true
                 case .productType(_):
                     return false
+                case .sumType(_):
+                    return false
                 }
             }
             
@@ -199,8 +203,13 @@ struct ProductType: Equatable, Hashable {
                     return false
                 case .productType(_):
                     return true
+                case .sumType(_):
+                    return false
                 }
             }
+            
+            
+            // TODO: Add SUM type cases, so double the cases.
             
             if !containsSwiftType && !containsProductType {
                 assertionFailure("Impossible case")
@@ -235,6 +244,8 @@ struct ProductType: Equatable, Hashable {
                     return nil
                 case .productType(let productType):
                     return productType
+                case .sumType(_):
+                    return nil // I'm not sure if this will be used in these cases.
                 }
             }
         
@@ -272,7 +283,7 @@ struct ProductType: Equatable, Hashable {
 enum TypeOption: Hashable, Equatable {
     case swiftType(SwiftType)
     case productType(ProductType)
-//        case sumType(SumType) // TODO: Add support for enums.
+    case sumType(SumType) // TODO: Add support for enums.
     
     /// Returns Swift Type or Codable type
     /// - Parameter jsonObject: Any object that
@@ -295,10 +306,22 @@ enum TypeOption: Hashable, Equatable {
         case let dictionary as [String: Any]: // for dictionaries
             let productType = try ProductType.productType(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON", dictionary: dictionary)
             swiftOrCodableType = .productType(productType)
-//            case let arrayOfAny as [Any]:
-//                arrayOfAny.count
-//            case _ as [Any]:
-//            swiftOrCodableType = .swiftType(.Bool)  // TODO: Remove [Any] if possible
+        case let arrayOfAny as [Any]:
+            enum UseOptionalsOrEnums {
+                case optionals
+                case enums
+            }
+            
+            let config = UseOptionalsOrEnums.optionals
+            switch config {
+            case .optionals:
+                // here we'll just assume the values should be optional if they appear in one item and not in the other one.
+                break
+            case .enums:
+                // here for each type that is different we'll add a new case to the enum.
+                return .sumType(.init(arrayOfJSONObjects: arrayOfAny))
+                break
+            }
         default:
             assertionFailure() // unhandled case
         }
@@ -317,6 +340,10 @@ enum SwiftType: String {
 
 struct SumType: Equatable, Hashable {
     let string = "enum Tipo {}"
+    
+    init(arrayOfJSONObjects: [Any]) {
+        
+    }
 }
 
 // Make this system as anti fragile as possible! The more automated this is the better. I don't want to update any API manually ever again!
