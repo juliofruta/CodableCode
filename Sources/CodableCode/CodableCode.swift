@@ -144,6 +144,7 @@ struct ProductType: Equatable, Hashable {
                 case let jsonObjects as [Any]:
                     // if we could get a codableType and a name
                     // Aqui esto esta raro... que le paso un arreglo y me regresa un product type.
+                    // Returns a Product type because I try to create one with the info insied the array.
                     if let productType = try ProductType(jsonObjects: jsonObjects, key: key) {
                         typeName = productType.name
                         relatedType = productType
