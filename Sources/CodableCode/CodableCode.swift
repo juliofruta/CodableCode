@@ -167,7 +167,7 @@ struct ProductType: Equatable, Hashable {
     ///   - key: The key of the array. This is used to infer the name of the Array type.
     /// - Returns: The type name of the array as a String
     static func arrayTypeName(jsonObjects: [Any], key: String) throws -> String {
-        let arrayOfTypes = try jsonObjects.compactMap(TypeOption.type(for:))
+        let arrayOfTypes = try jsonObjects.compactMap { try TypeOption.type(for: $0) }
         let types = Set<TypeOption>(arrayOfTypes)
         
         
@@ -235,7 +235,7 @@ struct ProductType: Equatable, Hashable {
     ///   - key: Key for the codable type
     /// - Returns: An optional codable type for the JSON objects
     init?(jsonObjects: [Any], key: String) throws {
-        let arrayOfTypes = try jsonObjects.compactMap(TypeOption.type(for:))
+        let arrayOfTypes = try jsonObjects.compactMap { try TypeOption.type(for: $0) }
         let setOfTypes = Set<TypeOption>(arrayOfTypes)
         let productTypes = setOfTypes
             .compactMap { (nameOrCodableTypes) -> ProductType? in
@@ -285,10 +285,15 @@ enum TypeOption: Hashable, Equatable {
     case productType(ProductType)
     case sumType(SumType) // TODO: Add support for enums.
     
+    enum UseOptionalsOrEnums {
+        case optionals
+        case enums
+    }
+    
     /// Returns Swift Type or Codable type
     /// - Parameter jsonObject: Any object that
     /// - Returns: Either a swiftType or a Codable Type
-    static func type(for jsonObject: Any) throws -> TypeOption? {
+    static func type(for jsonObject: Any, config: UseOptionalsOrEnums = .optionals) throws -> TypeOption? {
         var swiftOrCodableType: TypeOption?
         
         // check what type is the JSON object
@@ -307,20 +312,17 @@ enum TypeOption: Hashable, Equatable {
             let productType = try ProductType.productType(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON", dictionary: dictionary)
             swiftOrCodableType = .productType(productType)
         case let arrayOfAny as [Any]:
-            enum UseOptionalsOrEnums {
-                case optionals
-                case enums
-            }
-            
             let config = UseOptionalsOrEnums.optionals
             switch config {
             case .optionals:
                 // here we'll just assume the values should be optional if they appear in one item and not in the other one.
-                break
+                guard let productType = try ProductType.init(jsonObjects: arrayOfAny, key: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON") else {
+                    return nil
+                }
+                return .productType(productType)
             case .enums:
                 // here for each type that is different we'll add a new case to the enum.
                 return .sumType(.init(arrayOfJSONObjects: arrayOfAny))
-                break
             }
         default:
             assertionFailure() // unhandled case
