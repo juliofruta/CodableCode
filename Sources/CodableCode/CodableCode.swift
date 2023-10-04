@@ -134,7 +134,7 @@ struct ProductType: Equatable, Hashable {
         self.properties = properties
     }
     
-    static func productType(name: String, dictionary: [String: Any], config: UseOptionalsOrEnums = .optionals) throws -> ProductType {
+    static func productType(name: String, dictionary: [String: Any]) throws -> ProductType {
         let properties = try dictionary
             .sorted(by: { $0.0 < $1.0 })
             .map { (pair) -> ProductType.Property in
@@ -167,8 +167,10 @@ struct ProductType: Equatable, Hashable {
                     typeName = arrayType.name
                     relatedType = .array(arrayType)
                 default:
-                    // TODO: Add more cases like dates
-                    fatalError()
+                    // TODO: Add more cases 
+                    // like dates
+                    // <null>
+//                    fatalError()
                     break
                 }
                 return .init(symbol: key, typeName: typeName, isOptional: false, relatedType: relatedType)
@@ -228,12 +230,7 @@ struct ProductType: Equatable, Hashable {
     }
 }
 
-enum UseOptionalsOrEnums {
-    case optionals // When an item is on an array element and is not in the next treats it as an optional
-    case enums // When an item is on an array element and is not in the next treats it as an enum
-}
-
-enum TypeOption: Hashable, Equatable {
+indirect enum TypeOption: Hashable, Equatable {
     case swiftType(SwiftType)
     case productType(ProductType)
     case sumType(SumType)
@@ -284,28 +281,32 @@ enum SwiftType: String {
 }
 
 struct SumType: Equatable, Hashable {
-    let name = "Name"
+    let name: String
     
-    init(arrayOfJSONObjects: [Any]) {
-        
+    init(typeOptions: [TypeOption], name: String) {
+        self.name = name
     }
 }
 
 struct ArrayType: Equatable, Hashable {
     let name: String
+    let relatedType: TypeOption?
     
-    init(jsonObjects: [Any], name: String, config: UseOptionalsOrEnums = .optionals) throws {
+    enum UseOptionalsOrEnums {
+        case optionals // When an item is on an array element and is not in the next treats it as an optional
+        case enums // When an item is on an array element and is not in the next treats it as an enum
+    }
+    
+    init(jsonObjects: [Any], name: String, config: UseOptionalsOrEnums = .enums) throws {
         self.name = name
-        
-        var set = Set<TypeOption>()
-        
+        var typeOptions = [TypeOption]()
         for jsonObject in jsonObjects {
             guard let typeOption = try TypeOption.type(for: jsonObject) else {
                 fatalError()
-                return
             }
-            set.insert(typeOption)
+            typeOptions.append(typeOption)
         }
+        self.relatedType = .sumType(.init(typeOptions: typeOptions, name: name.asType))
     }
 }
 
