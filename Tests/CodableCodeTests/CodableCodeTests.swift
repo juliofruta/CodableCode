@@ -245,4 +245,16 @@ final class CodableCodeTests: XCTestCase {
             )
         )
     }
+    
+    func testArray() {
+        test("""
+        {
+         "a" : [
+              "gola",
+              1
+              ]
+        }
+        """, .success("""
+        """))
+    }
 }

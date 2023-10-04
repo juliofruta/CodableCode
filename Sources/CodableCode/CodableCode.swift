@@ -119,13 +119,13 @@ struct ProductType: Equatable, Hashable {
         self.properties = properties
     }
     
-    static func productType(name: String, dictionary: [String: Any]) throws -> ProductType {
+    static func productType(name: String, dictionary: [String: Any], config: UseOptionalsOrEnums = .optionals) throws -> ProductType {
         let properties = try dictionary
             .sorted(by: { $0.0 < $1.0 })
             .map { (pair) -> ProductType.Property in
                 let (key, value) = pair
                 var typeName = "Any"
-                var relatedType: ProductType?
+                var relatedType: ProductType? // TODO: Add support for enums here.
                 switch value {
                 case _ as Bool:
                     typeName = SwiftType.Bool.rawValue
@@ -145,12 +145,17 @@ struct ProductType: Equatable, Hashable {
                     // if we could get a codableType and a name
                     // Aqui esto esta raro... que le paso un arreglo y me regresa un product type.
                     // Returns a Product type because I try to create one with the info insied the array.
-                    if let productType = try ProductType(jsonObjects: jsonObjects, key: key) {
+                    switch config {
+                    case .optionals:
+                        guard let productType = try ProductType(jsonObjects: jsonObjects, key: key) else {
+                            fatalError()
+                        }
                         typeName = productType.name
                         relatedType = productType
-                    }
-                    else {
-                        typeName = try arrayTypeName(jsonObjects: jsonObjects, key: key)
+                    case .enums:
+                        // TODO: ⚠️ TO BE BUILT
+                        SumType(arrayOfJSONObjects: jsonObjects)
+                        break
                     }
                 default:
                     // TODO: Add more cases like dates
@@ -159,74 +164,6 @@ struct ProductType: Equatable, Hashable {
                 return .init(symbol: key, typeName: typeName, isOptional: false, relatedType: relatedType)
             }
         return .init(name: name, properties: properties)
-    }
-    
-    /// Get the name of the Array type.
-    /// - Parameters:
-    ///   - anyArray: The array of json objects.
-    ///   - key: The key of the array. This is used to infer the name of the Array type.
-    /// - Returns: The type name of the array as a String
-    static func arrayTypeName(jsonObjects: [Any], key: String) throws -> String {
-        let arrayOfTypes = try jsonObjects.compactMap { try TypeOption.type(for: $0) }
-        let types = Set<TypeOption>(arrayOfTypes)
-        
-        
-        if types.count == 0 {
-            return "[Any]"
-        } else if types.count == 1 {
-            var typeName = ""
-            switch types.first! {
-            case .swiftType(let swiftType):
-                typeName = swiftType.rawValue
-            case .productType(_):
-                typeName = key.asType
-            case .sumType(_):
-                typeName = key.asType
-            }
-            return "[\(typeName)]"
-        } else if types.count > 1 {
-            
-            let containsSwiftType = types.contains { type in
-                switch type {
-                case .swiftType(_):
-                    return true
-                case .productType(_):
-                    return false
-                case .sumType(_):
-                    return false
-                }
-            }
-            
-            let containsProductType = types.contains { type in
-                switch type {
-                case .swiftType(_):
-                    return false
-                case .productType(_):
-                    return true
-                case .sumType(_):
-                    return false
-                }
-            }
-            
-            
-            // TODO: Add SUM type cases, so double the cases.
-            
-            if !containsSwiftType && !containsProductType {
-                assertionFailure("Impossible case")
-            }
-            else if containsSwiftType && !containsProductType {
-                return "[Any]" // TODO: Remove [Any] if possible
-            }
-            else if !containsSwiftType && containsProductType {
-                return "[\(key.asType)]"
-            }
-            else if containsSwiftType && containsProductType {
-                return "[Any]" // TODO: Remove [Any] if possible
-            }
-            assertionFailure("Impossible case")
-        }
-        assertionFailure("Impossible case")
-        return "" //impossible case
     }
     
     /// Infers a product type from the array of json objects
@@ -280,15 +217,16 @@ struct ProductType: Equatable, Hashable {
     }
 }
 
+enum UseOptionalsOrEnums {
+    case optionals // When an item is on an array element and is not in the next treats it as an optional
+    case enums // When an item is on an array element and is not in the next treats it as an enum
+}
+
 enum TypeOption: Hashable, Equatable {
     case swiftType(SwiftType)
     case productType(ProductType)
-    case sumType(SumType) // TODO: Add support for enums.
-    
-    enum UseOptionalsOrEnums {
-        case optionals
-        case enums
-    }
+    case sumType(SumType)
+//    case array(arrayType)
     
     /// Returns Swift Type or Codable type
     /// - Parameter jsonObject: Any object that
@@ -312,11 +250,10 @@ enum TypeOption: Hashable, Equatable {
             let productType = try ProductType.productType(name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON", dictionary: dictionary)
             swiftOrCodableType = .productType(productType)
         case let arrayOfAny as [Any]:
-            let config = UseOptionalsOrEnums.optionals
             switch config {
             case .optionals:
                 // here we'll just assume the values should be optional if they appear in one item and not in the other one.
-                guard let productType = try ProductType.init(jsonObjects: arrayOfAny, key: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON") else {
+                guard let productType = try ProductType(jsonObjects: arrayOfAny, key: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON") else {
                     return nil
                 }
                 return .productType(productType)
