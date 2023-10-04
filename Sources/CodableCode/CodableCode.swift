@@ -28,7 +28,7 @@ struct ProductType: Equatable, Hashable {
         var symbol = "symbol" // Sentinel value
         var typeName = "Any" // Sentinel vlaue
         var isOptional = false
-        var relatedType: ProductType?
+        var relatedType: TypeOption?
     }
     
     /// Whether you are building struct or class
@@ -41,19 +41,25 @@ struct ProductType: Equatable, Hashable {
     let properties: [Property]
     
     /// Unique sub-types in the type
-    var uniqueTypes: [[Property]: ProductType] {
-        var uniqueTypes = [[Property]: ProductType]()
+    var uniqueTypes: [[Property]: TypeOption] {
+        var uniqueTypes = [[Property]: TypeOption]()
         
-        func fillUniqueTypes(root: ProductType, uniqueTypes: inout [[Property]: ProductType]) {
-            uniqueTypes[root.properties] = root
-            root.properties.forEach { property in
+        func fillUniqueTypes(root: TypeOption, uniqueTypes: inout [[Property]: TypeOption]) {
+            
+            guard case let .productType(productType) = root else {
+//                fatalError()
+                return
+            }
+            
+            uniqueTypes[productType.properties] = .productType(productType)
+            productType.properties.forEach { property in
                 if let relatedType = property.relatedType {
                     fillUniqueTypes(root: relatedType, uniqueTypes: &uniqueTypes)
                 }
             }
         }
         
-        fillUniqueTypes(root: self, uniqueTypes: &uniqueTypes)
+        fillUniqueTypes(root: .productType(self), uniqueTypes: &uniqueTypes)
         return uniqueTypes
     }
     
@@ -63,17 +69,26 @@ struct ProductType: Equatable, Hashable {
             .map { (pair) -> String in
                 let (_, codableType) = pair
                 
+                guard case let .productType(productType) = codableType else {
+                    fatalError()
+                }
+                
                 var implementation = [String]()
-                implementation += ["\(codableType.structOrClass) \(codableType.name.asType): Codable {"]
+                implementation += ["\(productType.structOrClass) \(productType.name.asType): Codable {"]
                 
                 // create – let <symbol>: <type><optional-syntactic-suggar>
                 
-                let properties = codableType.properties
+                guard case let .productType(productType) = codableType else {
+                    fatalError()
+                }
+                
+                let properties = productType.properties
                     .map { (property) -> String in
                         // get the name from the uniquetype list.
                         let typeName: String
-                        if let relatedType = property.relatedType {
-                            typeName = uniqueTypes[relatedType.properties]?.name ?? property.typeName
+                        if case let .productType(relatedProductType) = property.relatedType,
+                           case let .productType(relatedProductType2) = uniqueTypes[relatedProductType.properties] {
+                            typeName = relatedProductType2.name
                         } else {
                             typeName = property.typeName
                         }
@@ -91,7 +106,7 @@ struct ProductType: Equatable, Hashable {
                 // create coding keys
                 var codingKeys: [String] = ["enum CodingKeys: String, CodingKey {".idented]
                 
-                let cases = codableType.properties
+                let cases = productType.properties
                     .map { property in
                         "case \(property.symbol.asSymbol) = \"\(property.symbol)\""
                     }
@@ -125,7 +140,7 @@ struct ProductType: Equatable, Hashable {
             .map { (pair) -> ProductType.Property in
                 let (key, value) = pair
                 var typeName = "Any"
-                var relatedType: ProductType? // TODO: Add support for enums here.
+                var relatedType: TypeOption?
                 switch value {
                 case _ as Bool:
                     typeName = SwiftType.Bool.rawValue
@@ -140,21 +155,20 @@ struct ProductType: Equatable, Hashable {
                 case let jsonObject as [String: Any]:
                     let productType = try ProductType.productType(name: key, dictionary: jsonObject)
                     typeName = productType.name
-                    relatedType = productType
+                    relatedType = .productType(productType)
                 case let jsonObjects as [Any]:
                     // if we could get a codableType and a name
                     // Aqui esto esta raro... que le paso un arreglo y me regresa un product type.
                     // Returns a Product type because I try to create one with the info insied the array.
                     switch config {
                     case .optionals:
-                        guard let productType = try ProductType(jsonObjects: jsonObjects, key: key) else {
-                            fatalError()
-                        }
-                        typeName = productType.name
-                        relatedType = productType
+                        let arrayType = ArrayType(jsonObjects: jsonObjects, name: key)
+                        typeName = arrayType.name
+                        relatedType = .array(arrayType)
                     case .enums:
-                        // TODO: ⚠️ TO BE BUILT
-                        SumType(arrayOfJSONObjects: jsonObjects)
+                        let sumType = SumType(arrayOfJSONObjects: jsonObjects)
+                        typeName = sumType.name
+                        relatedType = .sumType(sumType)
                         break
                     }
                 default:
@@ -175,17 +189,18 @@ struct ProductType: Equatable, Hashable {
         let arrayOfTypes = try jsonObjects.compactMap { try TypeOption.type(for: $0) }
         let setOfTypes = Set<TypeOption>(arrayOfTypes)
         let productTypes = setOfTypes
-            .compactMap { (nameOrCodableTypes) -> ProductType? in
-                switch nameOrCodableTypes {
+            .compactMap { (type) -> ProductType? in
+                switch type {
                 case .swiftType(_):
                     return nil
                 case .productType(let productType):
                     return productType
                 case .sumType(_):
-                    return nil // I'm not sure if this will be used in these cases.
+                    return nil
+                case .array(_):
+                    return nil
                 }
             }
-        
         guard !productTypes.isEmpty else {
             return nil
         }
@@ -226,7 +241,7 @@ enum TypeOption: Hashable, Equatable {
     case swiftType(SwiftType)
     case productType(ProductType)
     case sumType(SumType)
-//    case array(arrayType)
+    case array(ArrayType)
     
     /// Returns Swift Type or Codable type
     /// - Parameter jsonObject: Any object that
@@ -278,10 +293,18 @@ enum SwiftType: String {
 }
 
 struct SumType: Equatable, Hashable {
-    let string = "enum Tipo {}"
+    let name = "Name"
     
     init(arrayOfJSONObjects: [Any]) {
         
+    }
+}
+
+struct ArrayType: Equatable, Hashable {
+    let name: String
+    
+    init(jsonObjects: [Any], name: String) {
+        self.name = name
     }
 }
 
