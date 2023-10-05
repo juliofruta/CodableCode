@@ -45,17 +45,23 @@ struct ProductType: Equatable, Hashable {
         var uniqueTypes = [[Property]: TypeOption]()
         
         func fillUniqueTypes(root: TypeOption, uniqueTypes: inout [[Property]: TypeOption]) {
-            
-            guard case let .productType(productType) = root else {
-//                fatalError()
-                return
-            }
-            
-            uniqueTypes[productType.properties] = .productType(productType)
-            productType.properties.forEach { property in
-                if let relatedType = property.relatedType {
-                    fillUniqueTypes(root: relatedType, uniqueTypes: &uniqueTypes)
+            switch root {
+            case .swiftType(_):
+                fatalError()
+                break
+            case let .productType(productType):
+                uniqueTypes[productType.properties] = .productType(productType)
+                productType.properties.forEach { property in
+                    if let relatedType = property.relatedType {
+                        fillUniqueTypes(root: relatedType, uniqueTypes: &uniqueTypes)
+                    }
                 }
+            case .sumType(_):
+                break
+            case let .arrayType(_):
+                break
+            case let .anyType(_):
+                break
             }
         }
         
@@ -63,7 +69,7 @@ struct ProductType: Equatable, Hashable {
         return uniqueTypes
     }
     
-    /// All the structs to be printed
+    /// Lines of code of all the structs to be printed.
     var structs: [String] {
         let structs = uniqueTypes
             .map { (pair) -> String in
@@ -139,41 +145,41 @@ struct ProductType: Equatable, Hashable {
             .sorted(by: { $0.0 < $1.0 })
             .map { (pair) -> ProductType.Property in
                 let (key, value) = pair
-                var typeName = "Any"
+                var name = "Any"
                 var relatedType: TypeOption?
                 switch value {
                 case _ as Bool:
-                    typeName = SwiftType.Bool.rawValue
+                    name = SwiftType.Bool.rawValue
                 case _ as String:
-                    typeName = SwiftType.String.rawValue
+                    name = SwiftType.String.rawValue
                 case _ as Decimal:
-                    typeName = SwiftType.Decimal.rawValue
+                    name = SwiftType.Decimal.rawValue
                 case _ as Double:
-                    typeName = SwiftType.Double.rawValue
+                    name = SwiftType.Double.rawValue
                 case _ as Int:
-                    typeName = SwiftType.Int.rawValue
+                    name = SwiftType.Int.rawValue
                 case let jsonObject as [String: Any]:
                     let productType = try ProductType.productType(
                         name: key,
                         dictionary: jsonObject
                     )
-                    typeName = productType.name
+                    name = productType.name
                     relatedType = .productType(productType)
                 case let jsonObjects as [Any]:
                     let arrayType = try ArrayType(
                         jsonObjects: jsonObjects,
                         name: key
                     )
-                    typeName = arrayType.name
-                    relatedType = .array(arrayType)
+                    name = arrayType.typeName
+                    relatedType = .arrayType(arrayType)
                 default:
                     // TODO: Add more cases 
                     // like dates
                     // <null>
-//                    fatalError()
+                    // fatalError()
                     break
                 }
-                return .init(symbol: key, typeName: typeName, isOptional: false, relatedType: relatedType)
+                return .init(symbol: key, typeName: name, isOptional: false, relatedType: relatedType)
             }
         return .init(name: name, properties: properties)
     }
@@ -195,7 +201,9 @@ struct ProductType: Equatable, Hashable {
                     return productType
                 case .sumType(_):
                     return nil
-                case .array(_):
+                case .arrayType(_):
+                    return nil
+                case .anyType(_):
                     return nil
                 }
             }
@@ -234,7 +242,24 @@ indirect enum TypeOption: Hashable, Equatable {
     case swiftType(SwiftType)
     case productType(ProductType)
     case sumType(SumType)
-    case array(ArrayType)
+    case arrayType(ArrayType)
+    case anyType(AnyType)
+    
+    var name: String {
+        switch self {
+            
+        case let .swiftType(swiftType):
+            return swiftType.rawValue
+        case let .productType(productType):
+            return productType.name
+        case let .sumType(sumType):
+            return sumType.name
+        case let .arrayType(arrayType):
+            return arrayType.typeName
+        case let .anyType(anyType):
+            return anyType.name
+        }
+    }
     
     /// Returns Swift Type or Codable type
     /// - Parameter jsonObject: Any object that
@@ -263,7 +288,7 @@ indirect enum TypeOption: Hashable, Equatable {
                 jsonObjects: jsonObjects,
                 name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON"
             )
-            typeOption = .array(arrayType)
+            typeOption = .arrayType(arrayType)
         default:
             assertionFailure()
         }
@@ -289,8 +314,11 @@ struct SumType: Equatable, Hashable {
 }
 
 struct ArrayType: Equatable, Hashable {
-    let name: String
-    let relatedType: TypeOption?
+    var typeName: String {
+        return "[\(relatedType.name)]"
+    }
+    
+    let relatedType: TypeOption
     
     enum UseOptionalsOrEnums {
         case optionals // When an item is on an array element and is not in the next treats it as an optional
@@ -298,7 +326,6 @@ struct ArrayType: Equatable, Hashable {
     }
     
     init(jsonObjects: [Any], name: String, config: UseOptionalsOrEnums = .enums) throws {
-        self.name = name
         var typeOptions = [TypeOption]()
         for jsonObject in jsonObjects {
             guard let typeOption = try TypeOption.type(for: jsonObject) else {
@@ -306,8 +333,19 @@ struct ArrayType: Equatable, Hashable {
             }
             typeOptions.append(typeOption)
         }
-        self.relatedType = .sumType(.init(typeOptions: typeOptions, name: name.asType))
+        switch config {
+        case .optionals:
+            self.relatedType = .sumType(.init(typeOptions: [], name: "NotSupported"))
+            fatalError()
+        case .enums:
+            self.relatedType = .sumType(.init(typeOptions: typeOptions, name: name))
+            print("name: \(name)")
+        }
     }
+}
+
+struct AnyType: Equatable, Hashable {
+    let name = "Any"
 }
 
 // Make this system as anti fragile as possible! The more automated this is the better. I don't want to update any API manually ever again!
