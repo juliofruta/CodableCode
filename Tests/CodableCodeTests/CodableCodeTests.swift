@@ -199,6 +199,16 @@ final class CodableCodeTests: XCTestCase {
               ]
         }
         """, .success("""
+        enum A {
+            case bool(Bool)
+            case string(String)
+        }
+        struct <#SomeType#>: Codable {
+            let a: [A]
+            enum CodingKeys: String, CodingKey {
+                case a = "a"
+            }
+        }
         """))
     }
 }

@@ -140,14 +140,8 @@ struct ProductType: Equatable, Hashable {
                         .implementation(productType: productType, uniqueTypes: relatedTypes)
                         .joined(separator: "\n")
                 case let .sumType(sumType):
-                    var code = [String]()
-                    code += ["enum \(sumType.name) {"]
-                    sumType.relatedTypes.uniqued().forEach { relatedType in
-                        code += ["case \(relatedType.name.asSymbol)(\(relatedType.name))".idented]
-                    }
-                    code += ["}"]
-//                    fatalError()
-                    return code.joined(separator: "\n")
+                    return SumType.implementation(sumType: sumType)
+                        .joined(separator: "\n")
                 case .arrayType(_):
                     fatalError()
                     break
@@ -271,8 +265,6 @@ struct ProductType: Equatable, Hashable {
 }
 
 indirect enum TypeOption: Hashable, Equatable, Comparable {
-    
-    
     case swiftType(SwiftType)
     case productType(ProductType)
     case sumType(SumType)
@@ -353,6 +345,16 @@ struct SumType: Equatable, Hashable {
     init(typeOptions: [TypeOption], name: String) {
         self.name = name
         self.relatedTypes = Array(typeOptions.uniqued().sorted())
+    }
+    
+    static func implementation(sumType: SumType) -> [String] {
+        var code = [String]()
+        code += ["enum \(sumType.name) {"]
+        sumType.relatedTypes.uniqued().forEach { relatedType in
+            code += ["case \(relatedType.name.asSymbol)(\(relatedType.name))".idented]
+        }
+        code += ["}"]
+        return code
     }
 }
 
@@ -453,5 +455,5 @@ extension String {
 ///   - line: The line at whic the function was called from.
 ///   - output: The string to be printed.
 func dump2(file: String = #file, line: Int = #line, _ output: String) {
-    print(">>> \(output) |\t\(file):\(line)")
+    print(">>> \(output)\t|\(file):\(line)")
 }
