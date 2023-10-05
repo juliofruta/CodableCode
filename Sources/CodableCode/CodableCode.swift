@@ -11,6 +11,27 @@ enum Identation: String {
     case twoSpaces = "  "
 }
 
+func fillUniqueTypes(root: TypeOption, uniqueTypes: inout [[ProductType.Property]: TypeOption]) {
+    switch root {
+    case .swiftType(_):
+        fatalError()
+        break
+    case let .productType(productType):
+        uniqueTypes[productType.properties] = .productType(productType)
+        productType.properties.forEach { property in
+            if let relatedType = property.relatedType {
+                fillUniqueTypes(root: relatedType, uniqueTypes: &uniqueTypes)
+            }
+        }
+    case .sumType(_):
+        break
+    case let .arrayType(_):
+        break
+    case let .anyType(_):
+        break
+    }
+}
+
 /// A representation of a product type
 /// This is a struct that reptresents a product type, which can be either a class, struct or actor.
 /// For example:
@@ -43,28 +64,6 @@ struct ProductType: Equatable, Hashable {
     /// Unique sub-types in the type
     var uniqueTypes: [[Property]: TypeOption] {
         var uniqueTypes = [[Property]: TypeOption]()
-        
-        func fillUniqueTypes(root: TypeOption, uniqueTypes: inout [[Property]: TypeOption]) {
-            switch root {
-            case .swiftType(_):
-                fatalError()
-                break
-            case let .productType(productType):
-                uniqueTypes[productType.properties] = .productType(productType)
-                productType.properties.forEach { property in
-                    if let relatedType = property.relatedType {
-                        fillUniqueTypes(root: relatedType, uniqueTypes: &uniqueTypes)
-                    }
-                }
-            case .sumType(_):
-                break
-            case let .arrayType(_):
-                break
-            case let .anyType(_):
-                break
-            }
-        }
-        
         fillUniqueTypes(root: .productType(self), uniqueTypes: &uniqueTypes)
         return uniqueTypes
     }
