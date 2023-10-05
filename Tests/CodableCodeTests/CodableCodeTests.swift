@@ -28,7 +28,7 @@ extension XCTestCase {
                 difference == nil,
                 "Generated code does not match expected code \(difference!)"
             )
-        case (let .success(generatedCode), let .failure(expectedError)]):
+        case (let .success(generatedCode), let .failure(expectedError)):
             XCTFail(
                 "Expected error: \(expectedError) but got generated code \(generatedCode)"
             )

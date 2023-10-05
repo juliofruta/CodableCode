@@ -23,11 +23,14 @@ func fillUniqueTypes(root: TypeOption, uniqueTypes: inout [[ProductType.Property
                 fillUniqueTypes(root: relatedType, uniqueTypes: &uniqueTypes)
             }
         }
-    case .sumType(_):
+    case let .sumType(sumType):
+        dump2(sumType.name)
         break
-    case let .arrayType(_):
+    case let .arrayType(arrayType):
+        dump2(arrayType.typeName)
         break
-    case let .anyType(_):
+    case let .anyType(anyType):
+        dump2(anyType.name)
         break
     }
 }
@@ -343,7 +346,6 @@ struct ArrayType: Equatable, Hashable {
                 fatalError()
             case .enums:
                 self.relatedType = .sumType(.init(typeOptions: typeOptions, name: name.asType))
-                print("name: \(name)")
             }
         }
     }
@@ -404,6 +406,6 @@ extension String {
 ///   - file: The file at which the function was called from.
 ///   - line: The line at whic the function was called from.
 ///   - output: The string to be printed.
-func dump(file: String = #file, line: Int = #line, _ output: String) {
+func dump2(file: String = #file, line: Int = #line, _ output: String) {
     print(">>> \(output) |\t\(file):\(line)")
 }
