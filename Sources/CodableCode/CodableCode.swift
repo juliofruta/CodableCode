@@ -11,13 +11,17 @@ enum Identation: String {
     case twoSpaces = "  "
 }
 
-func fillUniqueTypes(root: TypeOption, uniqueTypes: inout [[ProductType.Property]: TypeOption]) {
+enum UniqueTypeKey: Hashable {
+    case structKey([ProductType.Property])
+}
+
+func fillUniqueTypes(root: TypeOption, uniqueTypes: inout [UniqueTypeKey: TypeOption]) {
     switch root {
     case .swiftType(_):
         fatalError()
         break
     case let .productType(productType):
-        uniqueTypes[productType.properties] = .productType(productType)
+        uniqueTypes[.structKey(productType.properties)] = .productType(productType)
         productType.properties.forEach { property in
             if let relatedType = property.relatedType {
                 fillUniqueTypes(root: relatedType, uniqueTypes: &uniqueTypes)
@@ -65,13 +69,13 @@ struct ProductType: Equatable, Hashable {
     let properties: [Property]
     
     /// Unique sub-types used in the struct
-    var relatedTypes: [[Property]: TypeOption] {
-        var uniqueTypes = [[Property]: TypeOption]()
+    var relatedTypes: [UniqueTypeKey: TypeOption] {
+        var uniqueTypes = [UniqueTypeKey: TypeOption]()
         fillUniqueTypes(root: .productType(self), uniqueTypes: &uniqueTypes)
         return uniqueTypes
     }
     
-    static func implementation(productType: ProductType, uniqueTypes: [[Property]: TypeOption]) -> [String] {
+    static func implementation(productType: ProductType, uniqueTypes: [UniqueTypeKey: TypeOption]) -> [String] {
         var implementation = [String]()
         implementation += ["\(productType.structOrClass) \(productType.name.asType): Codable {"]
         
@@ -81,7 +85,7 @@ struct ProductType: Equatable, Hashable {
                 // get the name from the uniquetype list.
                 let typeName: String
                 if case let .productType(relatedProductType) = property.relatedType,
-                   case let .productType(relatedProductType2) = uniqueTypes[relatedProductType.properties] {
+                   case let .productType(relatedProductType2) = uniqueTypes[.structKey(relatedProductType.properties)] {
                     typeName = relatedProductType2.name
                 } else {
                     typeName = property.typeName
