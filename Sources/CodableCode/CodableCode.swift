@@ -72,7 +72,7 @@ struct ProductType: Equatable, Hashable {
     }
     
     /// Lines of code of all the structs to be printed.
-    var structs: [String] {
+    var linesOfCode: [String] {
         let structs = uniqueTypes
             .map { (pair) -> String in
                 let (_, codableType) = pair
@@ -129,12 +129,13 @@ struct ProductType: Equatable, Hashable {
                 implementation += ["}"]
                 return implementation.joined(separator: "\n")
             }
+        
         return Array(structs.uniqued().sorted())
     }
     
-    var description: String {
-        let description = structs.joined(separator: "\n")
-        return description
+    var code: String {
+        let code = linesOfCode.joined(separator: "\n")
+        return code
     }
     
     init(name: String, properties: [Property]) {
@@ -397,7 +398,7 @@ extension String {
     public func codableCode(name: String = "<#SomeType#>") throws -> String {
         let dictionary = try dictionary()
         let productType = try ProductType.productType(name: name, dictionary: dictionary)
-        return productType.description
+        return productType.code
     }
 }
 
