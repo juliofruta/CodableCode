@@ -144,7 +144,7 @@ struct ProductType: Equatable, Hashable {
             .sorted(by: { $0.0 < $1.0 })
             .map { (pair) -> ProductType.Property in
                 let (key, value) = pair
-                var name = "Any"
+                let name: String
                 var relatedType: TypeOption?
                 switch value {
                 case _ as Bool:
@@ -167,7 +167,7 @@ struct ProductType: Equatable, Hashable {
                 case let jsonObjects as [Any]:
                     let arrayType = try ArrayType(
                         jsonObjects: jsonObjects,
-                        name: key
+                        name: key.asType
                     )
                     name = arrayType.typeName
                     relatedType = .arrayType(arrayType)
@@ -175,7 +175,7 @@ struct ProductType: Equatable, Hashable {
                     // TODO: Add more cases 
                     // like dates
                     // <null>
-                    // fatalError()
+                    name = AnyType().name
                     break
                 }
                 return .init(symbol: key, typeName: name, isOptional: false, relatedType: relatedType)
@@ -263,7 +263,7 @@ indirect enum TypeOption: Hashable, Equatable {
     /// Returns Swift Type or Codable type
     /// - Parameter jsonObject: Any object that
     /// - Returns: Either a swiftType or a Codable Type
-    static func type(for jsonObject: Any) throws -> TypeOption? {
+    static func type(for jsonObject: Any, name: String = "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON") throws -> TypeOption? {
         var typeOption: TypeOption?
         switch jsonObject {
         case _ as String:
@@ -278,14 +278,14 @@ indirect enum TypeOption: Hashable, Equatable {
             typeOption = .swiftType(.Int)
         case let dictionary as [String: Any]:
             let productType = try ProductType.productType(
-                name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON",
+                name: name,
                 dictionary: dictionary
             )
             typeOption = .productType(productType)
         case let jsonObjects as [Any]:
             let arrayType = try ArrayType(
                 jsonObjects: jsonObjects,
-                name: "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON"
+                name: name
             )
             typeOption = .arrayType(arrayType)
         default:
@@ -327,18 +327,24 @@ struct ArrayType: Equatable, Hashable {
     init(jsonObjects: [Any], name: String, config: UseOptionalsOrEnums = .enums) throws {
         var typeOptions = [TypeOption]()
         for jsonObject in jsonObjects {
-            guard let typeOption = try TypeOption.type(for: jsonObject) else {
+            guard let typeOption = try TypeOption.type(for: jsonObject, name: name.asType) else {
                 fatalError()
             }
             typeOptions.append(typeOption)
         }
-        switch config {
-        case .optionals:
-            self.relatedType = .sumType(.init(typeOptions: [], name: "NotSupported"))
-            fatalError()
-        case .enums:
-            self.relatedType = .sumType(.init(typeOptions: typeOptions, name: name))
-            print("name: \(name)")
+        
+        let set = Set<TypeOption>(typeOptions)
+        if set.count == 1 {
+            self.relatedType = set.first!
+        } else {
+            switch config {
+            case .optionals:
+                self.relatedType = .sumType(.init(typeOptions: [], name: "NotSupported"))
+                fatalError()
+            case .enums:
+                self.relatedType = .sumType(.init(typeOptions: typeOptions, name: name.asType))
+                print("name: \(name)")
+            }
         }
     }
 }
