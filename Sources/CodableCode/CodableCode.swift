@@ -64,73 +64,76 @@ struct ProductType: Equatable, Hashable {
     /// An array of the properties in the type
     let properties: [Property]
     
-    /// Unique sub-types in the type
-    var uniqueTypes: [[Property]: TypeOption] {
+    /// Unique sub-types used in the struct
+    var relatedTypes: [[Property]: TypeOption] {
         var uniqueTypes = [[Property]: TypeOption]()
         fillUniqueTypes(root: .productType(self), uniqueTypes: &uniqueTypes)
         return uniqueTypes
     }
     
-    /// Lines of code of all the structs to be printed.
-    var linesOfCode: [String] {
-        let structs = uniqueTypes
-            .map { (pair) -> String in
-                let (_, codableType) = pair
-                
-                guard case let .productType(productType) = codableType else {
-                    fatalError()
+    static func implementation(productType: ProductType, uniqueTypes: [[Property]: TypeOption]) -> [String] {
+        var implementation = [String]()
+        implementation += ["\(productType.structOrClass) \(productType.name.asType): Codable {"]
+        
+        // create – let <symbol>: <type><optional-syntactic-suggar>
+        let properties = productType.properties
+            .map { (property) -> String in
+                // get the name from the uniquetype list.
+                let typeName: String
+                if case let .productType(relatedProductType) = property.relatedType,
+                   case let .productType(relatedProductType2) = uniqueTypes[relatedProductType.properties] {
+                    typeName = relatedProductType2.name
+                } else {
+                    typeName = property.typeName
                 }
                 
-                var implementation = [String]()
-                implementation += ["\(productType.structOrClass) \(productType.name.asType): Codable {"]
-                
-                // create – let <symbol>: <type><optional-syntactic-suggar>
-                
-                guard case let .productType(productType) = codableType else {
-                    fatalError()
-                }
-                
-                let properties = productType.properties
-                    .map { (property) -> String in
-                        // get the name from the uniquetype list.
-                        let typeName: String
-                        if case let .productType(relatedProductType) = property.relatedType,
-                           case let .productType(relatedProductType2) = uniqueTypes[relatedProductType.properties] {
-                            typeName = relatedProductType2.name
-                        } else {
-                            typeName = property.typeName
-                        }
-                        
-                        let optionalSintacticSuggar = property.isOptional ? "?": ""
-                        return "\(property.letOrVar) \(property.symbol.asSymbol): \(typeName.asType)\(optionalSintacticSuggar)"
-                    }
-                    .sorted()
-                    .reduce([String]()) { partialResult, line in
-                        return partialResult + [line.idented]
-                    }
-                
-                implementation += properties
-                
-                // create coding keys
-                var codingKeys: [String] = ["enum CodingKeys: String, CodingKey {".idented]
-                
-                let cases = productType.properties
-                    .map { property in
-                        "case \(property.symbol.asSymbol) = \"\(property.symbol)\""
-                    }
-                    .sorted()
-                    .reduce([String]()) { partialResult, line in
-                        return partialResult + [line.idented.idented]
-                    }
-                
-                codingKeys += cases
-                codingKeys += ["}".idented]
-                implementation += codingKeys
-                implementation += ["}"]
-                return implementation.joined(separator: "\n")
+                let optionalSintacticSuggar = property.isOptional ? "?": ""
+                return "\(property.letOrVar) \(property.symbol.asSymbol): \(typeName.asType)\(optionalSintacticSuggar)"
+            }
+            .sorted()
+            .reduce([String]()) { partialResult, line in
+                return partialResult + [line.idented]
             }
         
-        return Array(structs.uniqued().sorted())
+        implementation += properties
+        
+        // create coding keys
+        var codingKeys: [String] = ["enum CodingKeys: String, CodingKey {".idented]
+        
+        let cases = productType.properties
+            .map { property in
+                "case \(property.symbol.asSymbol) = \"\(property.symbol)\""
+            }
+            .sorted()
+            .reduce([String]()) { partialResult, line in
+                return partialResult + [line.idented.idented]
+            }
+        
+        codingKeys += cases
+        codingKeys += ["}".idented]
+        implementation += codingKeys
+        implementation += ["}"]
+        return implementation
+    }
+    
+    /// Lines of code of all the structs to be printed.
+    var linesOfCode: [String] {
+        let structs = relatedTypes
+            .map { (pair) -> String in
+                let (_, typeOption) = pair
+                
+                guard case let .productType(productType) = typeOption else {
+                    fatalError()
+                }
+                
+                return ProductType
+                    .implementation(productType: productType, uniqueTypes: relatedTypes)
+                    .joined(separator: "\n")
+            }
+        let linesOfCode = structs
+            .uniqued() // We don't want to repeat code
+            .sorted()  // We want to sort the types alphabetically
+        return linesOfCode
     }
     
     var code: String {
