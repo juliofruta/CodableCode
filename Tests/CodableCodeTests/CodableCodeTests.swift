@@ -53,7 +53,7 @@ final class CodableCodeTests: XCTestCase {
     }
     
     /// Test sample JSON from quicktype.io
-    func testA() {
+    func testSimpleStruct() {
         test(
             """
             {
@@ -81,7 +81,7 @@ final class CodableCodeTests: XCTestCase {
         )
     }
     
-    func testB() {
+    func testStructWithStructs() {
         test(
       """
            {
@@ -246,7 +246,7 @@ final class CodableCodeTests: XCTestCase {
         )
     }
     
-    func testArray() {
+    func testArrayWithMultipleTypes() {
         test("""
         {
          "a" : [
