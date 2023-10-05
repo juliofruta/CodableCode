@@ -121,14 +121,25 @@ struct ProductType: Equatable, Hashable {
         let structs = relatedTypes
             .map { (pair) -> String in
                 let (_, typeOption) = pair
-                
-                guard case let .productType(productType) = typeOption else {
+               
+                switch typeOption {
+                case .swiftType(_):
                     fatalError()
+                    break
+                case let .productType(productType):
+                    return ProductType
+                        .implementation(productType: productType, uniqueTypes: relatedTypes)
+                        .joined(separator: "\n")
+                case .sumType(_):
+                    fatalError()
+                    break
+                case .arrayType(_):
+                    fatalError()
+                    break
+                case .anyType(_):
+                    fatalError()
+                    break
                 }
-                
-                return ProductType
-                    .implementation(productType: productType, uniqueTypes: relatedTypes)
-                    .joined(separator: "\n")
             }
         let linesOfCode = structs
             .uniqued() // We don't want to repeat code
@@ -253,7 +264,6 @@ indirect enum TypeOption: Hashable, Equatable {
     
     var name: String {
         switch self {
-            
         case let .swiftType(swiftType):
             return swiftType.rawValue
         case let .productType(productType):
