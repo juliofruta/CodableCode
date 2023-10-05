@@ -14,7 +14,6 @@ enum Identation: String {
 enum UniqueTypeKey: Hashable {
     case structKey([ProductType.Property])
     case sumKey(relatedTypes: [TypeOption])
-    case arrayKey(String)
 }
 
 func fillUniqueTypes(root: TypeOption, uniqueTypes: inout [UniqueTypeKey: TypeOption]) {
@@ -73,8 +72,8 @@ struct ProductType: Equatable, Hashable {
     /// An array of the properties in the type
     let properties: [Property]
     
-    /// Unique sub-types used in the struct
-    var relatedTypes: [UniqueTypeKey: TypeOption] {
+    /// Self and unique sub-types used in the struct
+    var selfAndRelatedSubtypes: [UniqueTypeKey: TypeOption] {
         var uniqueTypes = [UniqueTypeKey: TypeOption]()
         fillUniqueTypes(root: .productType(self), uniqueTypes: &uniqueTypes)
         return uniqueTypes
@@ -127,7 +126,7 @@ struct ProductType: Equatable, Hashable {
     
     /// Lines of code of all the structs to be printed.
     var linesOfCode: [String] {
-        let structs = relatedTypes
+        let structs = selfAndRelatedSubtypes
             .map { (pair) -> String in
                 let (_, typeOption) = pair
                
@@ -137,7 +136,7 @@ struct ProductType: Equatable, Hashable {
                     break
                 case let .productType(productType):
                     return ProductType
-                        .implementation(productType: productType, uniqueTypes: relatedTypes)
+                        .implementation(productType: productType, uniqueTypes: selfAndRelatedSubtypes)
                         .joined(separator: "\n")
                 case let .sumType(sumType):
                     return SumType.implementation(sumType: sumType)
@@ -385,8 +384,8 @@ struct ArrayType: Equatable, Hashable {
         } else {
             switch config {
             case .optionals:
-                self.relatedType = .sumType(.init(typeOptions: [], name: "NotSupported"))
-                fatalError()
+                self.relatedType = .sumType(.init(typeOptions: [], name: ""))
+                fatalError("Not supported")
             case .enums:
                 self.relatedType = .sumType(.init(typeOptions: typeOptions, name: name.asType))
             }
