@@ -13,12 +13,14 @@ enum Identation: String {
 
 enum UniqueTypeKey: Hashable {
     case structKey([ProductType.Property])
+    case sumKey(String)
+    case arrayKey(String)
 }
 
 func fillUniqueTypes(root: TypeOption, uniqueTypes: inout [UniqueTypeKey: TypeOption]) {
     switch root {
     case .swiftType(_):
-        fatalError()
+        // nothing to do here
         break
     case let .productType(productType):
         uniqueTypes[.structKey(productType.properties)] = .productType(productType)
@@ -28,13 +30,16 @@ func fillUniqueTypes(root: TypeOption, uniqueTypes: inout [UniqueTypeKey: TypeOp
             }
         }
     case let .sumType(sumType):
-        dump2(sumType.name)
+        uniqueTypes[.sumKey(UUID().uuidString)] = .sumType(sumType)
+        sumType.relatedTypes.forEach { option in
+            fillUniqueTypes(root: option, uniqueTypes: &uniqueTypes)
+        }
         break
     case let .arrayType(arrayType):
-        dump2(arrayType.typeName)
+        fillUniqueTypes(root: arrayType.relatedType, uniqueTypes: &uniqueTypes)
         break
-    case let .anyType(anyType):
-        dump2(anyType.name)
+    case .anyType(_):
+        // nothing to do here
         break
     }
 }
@@ -327,9 +332,11 @@ enum SwiftType: String {
 
 struct SumType: Equatable, Hashable {
     let name: String
+    let relatedTypes: [TypeOption]
     
     init(typeOptions: [TypeOption], name: String) {
         self.name = name
+        self.relatedTypes = typeOptions
     }
 }
 
