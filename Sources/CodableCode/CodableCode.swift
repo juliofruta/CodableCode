@@ -13,7 +13,7 @@ enum Identation: String {
 
 enum UniqueTypeKey: Hashable {
     case structKey([ProductType.Property])
-    case sumKey(String)
+    case sumKey(relatedTypes: [TypeOption])
     case arrayKey(String)
 }
 
@@ -30,7 +30,7 @@ func fillUniqueTypes(root: TypeOption, uniqueTypes: inout [UniqueTypeKey: TypeOp
             }
         }
     case let .sumType(sumType):
-        uniqueTypes[.sumKey(UUID().uuidString)] = .sumType(sumType)
+        uniqueTypes[.sumKey(relatedTypes: sumType.relatedTypes)] = .sumType(sumType) // change key to cases instead of uuid or properties
         sumType.relatedTypes.forEach { option in
             fillUniqueTypes(root: option, uniqueTypes: &uniqueTypes)
         }
@@ -139,9 +139,15 @@ struct ProductType: Equatable, Hashable {
                     return ProductType
                         .implementation(productType: productType, uniqueTypes: relatedTypes)
                         .joined(separator: "\n")
-                case .sumType(_):
-                    fatalError()
-                    break
+                case let .sumType(sumType):
+                    var code = [String]()
+                    code += ["enum \(sumType.name) {"]
+                    sumType.relatedTypes.uniqued().forEach { relatedType in
+                        code += ["case \(relatedType.name.asSymbol)(\(relatedType.name))".idented]
+                    }
+                    code += ["}"]
+//                    fatalError()
+                    return code.joined(separator: "\n")
                 case .arrayType(_):
                     fatalError()
                     break
@@ -196,7 +202,7 @@ struct ProductType: Equatable, Hashable {
                         jsonObjects: jsonObjects,
                         name: key.asType
                     )
-                    name = arrayType.typeName
+                    name = arrayType.name
                     relatedType = .arrayType(arrayType)
                 default:
                     // TODO: Add more cases 
@@ -264,7 +270,9 @@ struct ProductType: Equatable, Hashable {
     }
 }
 
-indirect enum TypeOption: Hashable, Equatable {
+indirect enum TypeOption: Hashable, Equatable, Comparable {
+    
+    
     case swiftType(SwiftType)
     case productType(ProductType)
     case sumType(SumType)
@@ -280,10 +288,14 @@ indirect enum TypeOption: Hashable, Equatable {
         case let .sumType(sumType):
             return sumType.name
         case let .arrayType(arrayType):
-            return arrayType.typeName
+            return arrayType.name
         case let .anyType(anyType):
             return anyType.name
         }
+    }
+    
+    static func < (lhs: TypeOption, rhs: TypeOption) -> Bool {
+        return lhs.name < rhs.name
     }
     
     /// Returns Swift Type or Codable type
@@ -328,6 +340,10 @@ enum SwiftType: String {
     case Decimal = "Decimal"
     case Double = "Double"
     case Int = "Int"
+    
+    var name: String {
+        return rawValue
+    }
 }
 
 struct SumType: Equatable, Hashable {
@@ -336,12 +352,12 @@ struct SumType: Equatable, Hashable {
     
     init(typeOptions: [TypeOption], name: String) {
         self.name = name
-        self.relatedTypes = typeOptions
+        self.relatedTypes = Array(typeOptions.uniqued().sorted())
     }
 }
 
 struct ArrayType: Equatable, Hashable {
-    var typeName: String {
+    var name: String {
         return "[\(relatedType.name)]"
     }
     
@@ -393,6 +409,11 @@ extension String {
     /// Lowercases the first Character
     var asSymbol: String {
         var string = self
+        
+        // We want to be able to convert also typeNames of the type [String] to case string([String])
+        // so we remove the "[]" from the string
+        string.removeAll { $0 == "[" || $0 == "]" }
+        
         let firstChar = string.removeFirst()
         return firstChar.lowercased() + string
     }
