@@ -51,11 +51,6 @@
                BlueprintName = "CodableCodeTests"
                ReferencedContainer = "container:">
             </BuildableReference>
-            <SkippedTests>
-               <Test
-                  Identifier = "CodableCodeTests/testI()">
-               </Test>
-            </SkippedTests>
          </TestableReference>
       </Testables>
    </TestAction>

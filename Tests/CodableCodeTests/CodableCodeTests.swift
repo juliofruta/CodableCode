@@ -124,6 +124,62 @@ final class CodableCodeTests: XCTestCase {
       """,
             .success(
             """
+            struct <#SomeType#>: Codable {
+                let books: [Books]
+                let person: Person
+                let tags: [String]
+                enum CodingKeys: String, CodingKey {
+                    case books = "books"
+                    case person = "person"
+                    case tags = "tags"
+                }
+            }
+            struct Address: Codable {
+                let city: String
+                let postalCode: String
+                let state: String
+                let street: String
+                enum CodingKeys: String, CodingKey {
+                    case city = "city"
+                    case postalCode = "postalCode"
+                    case state = "state"
+                    case street = "street"
+                }
+            }
+            struct Books: Codable {
+                let author: String
+                let publishedYear: Double
+                let title: String
+                enum CodingKeys: String, CodingKey {
+                    case author = "author"
+                    case publishedYear = "publishedYear"
+                    case title = "title"
+                }
+            }
+            struct Person: Codable {
+                let address: Address
+                let age: Double
+                let grades: Any
+                let isStudent: Bool
+                let name: String
+                let phoneNumbers: [PhoneNumbers]
+                enum CodingKeys: String, CodingKey {
+                    case address = "address"
+                    case age = "age"
+                    case grades = "grades"
+                    case isStudent = "isStudent"
+                    case name = "name"
+                    case phoneNumbers = "phoneNumbers"
+                }
+            }
+            struct PhoneNumbers: Codable {
+                let number: String
+                let type: String
+                enum CodingKeys: String, CodingKey {
+                    case number = "number"
+                    case type = "type"
+                }
+            }
             """
             )
         )
