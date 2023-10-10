@@ -282,4 +282,16 @@ final class CodableCodeTests: XCTestCase {
         }
         """))
     }
+    
+    func testEmptyDictionary() throws {
+        try test(
+            "{}",
+            .success(
+                """
+                struct SomeType: Codable {
+                }
+                """
+            )
+        )
+    }
 }

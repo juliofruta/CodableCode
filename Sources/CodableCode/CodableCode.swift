@@ -105,21 +105,24 @@ struct ProductType: Equatable, Hashable {
         
         implementation += properties
         
-        // create coding keys
-        var codingKeys: [String] = ["enum CodingKeys: String, CodingKey {".idented]
+        // if needed
+        if !productType.properties.isEmpty {
+            // create coding keys enum
+            var codingKeys: [String] = ["enum CodingKeys: String, CodingKey {".idented]
+            let cases = productType.properties
+                .map { property in
+                    "case \(property.symbol.asSymbol) = \"\(property.symbol)\""
+                }
+                .sorted()
+                .reduce([String]()) { partialResult, line in
+                    return partialResult + [line.idented.idented]
+                }
+            
+            codingKeys += cases
+            codingKeys += ["}".idented]
+            implementation += codingKeys
+        }
         
-        let cases = productType.properties
-            .map { property in
-                "case \(property.symbol.asSymbol) = \"\(property.symbol)\""
-            }
-            .sorted()
-            .reduce([String]()) { partialResult, line in
-                return partialResult + [line.idented.idented]
-            }
-        
-        codingKeys += cases
-        codingKeys += ["}".idented]
-        implementation += codingKeys
         implementation += ["}"]
         return implementation
     }
@@ -397,7 +400,6 @@ struct AnyType: Equatable, Hashable {
     let name = "Any"
 }
 
-// Make this system as anti fragile as possible! The more automated this is the better. I don't want to update any API manually ever again!
 extension String {
     
     /// Uppercases the first character
