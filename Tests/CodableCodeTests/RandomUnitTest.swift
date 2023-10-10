@@ -1,14 +1,7 @@
-//
-//  LargeUnitTest.swift
-//  
-//
-//  Created by Julio Cesar Guzman Villanueva on 10/1/23.
-//
-
 import XCTest
 @testable import CodableCode
 
-final class LargeUnitTest: XCTestCase {
+final class RandomUnitTest: XCTestCase {
     
     func testLargeJSON() throws {
         try test(

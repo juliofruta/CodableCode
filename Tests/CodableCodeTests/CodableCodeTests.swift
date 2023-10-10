@@ -2,8 +2,6 @@ import XCTest
 import CustomDump
 @testable import CodableCode
 
-
-
 final class CodableCodeTests: XCTestCase {
     
     /// Test that we are returning an error if an empty string is passed.
