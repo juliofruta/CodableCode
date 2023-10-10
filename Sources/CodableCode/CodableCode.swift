@@ -448,28 +448,32 @@ extension String {
         
         let uniqueName: String
         
+        defer {
+            namesAlreadyUsed.append(uniqueName)
+        }
+        
         guard !namesAlreadyUsed.contains(self) else {
             
             let lastCount = namesAlreadyUsed
                 .filter { name in
-                    return name.hasPrefix(self) // filter to check if we have the prefix
+                    return name.hasPrefix(self)    // filter to check if we have the prefix
                 }
                 .map {
-                    $0.dropFirst(self.count)    // remove the prefix and leave only a suffix
+                    $0.dropFirst(self.count)       // remove the prefix and leave only a suffix
                 }
-                .compactMap { Int($0) }         // try to turn the suffix into a number
-                .sorted()                       // sort it
-                .last                           // get the last element
+                .compactMap { Int($0) }            // try to turn the suffix into a number
+                .sorted()                          // sort it
+                .last                              // get the last element
                 
             guard let lastCount = lastCount else {
-                uniqueName = self + "1"
+                uniqueName = self + "1"            // the name does not contain a number so we initialize it at one
                 return uniqueName
             }
             
-            uniqueName = self + "\(lastCount + 1)"
+            uniqueName = self + "\(lastCount + 1)" // we add one to the last number
             return uniqueName
         }
-        uniqueName = self
+        uniqueName = self                          // the name is not found so we can use it as is.
         return uniqueName
     }
     
