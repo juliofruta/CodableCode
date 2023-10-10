@@ -38,6 +38,7 @@ final class CodableCodeTests: XCTestCase {
         )
     }
     
+    /// Test a dictionary that contains dictionaries and array of dictionaries
     func testStructWithStructs() throws {
         try test(
            """
@@ -142,6 +143,7 @@ final class CodableCodeTests: XCTestCase {
         )
     }
     
+    /// Test 4 levels deep dictionary
     func test4LevelsDeep() throws {
         try test(
         """
@@ -203,6 +205,7 @@ final class CodableCodeTests: XCTestCase {
         )
     }
     
+    /// Test that enums are being generated
     func testArrayWithMultipleTypes() throws {
         try test("""
         {

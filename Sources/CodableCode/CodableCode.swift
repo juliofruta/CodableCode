@@ -439,8 +439,15 @@ extension String {
         }
         return dictionary
     }
-   
-    func name(namesAlreadyUsed: inout [String]) -> String {
+    
+    /// Returns a numeric sequenced name for example:
+    /// 
+    /// - Parameter namesAlreadyUsed: an list of type names already used it will be modified to include the nw name.
+    /// - Returns: A new sugested name
+    func uniqued(namesAlreadyUsed: inout [String]) -> String {
+        
+        let uniqueName: String
+        
         guard !namesAlreadyUsed.contains(self) else {
             
             let lastCount = namesAlreadyUsed
@@ -455,12 +462,15 @@ extension String {
                 .last                           // get the last element
                 
             guard let lastCount = lastCount else {
-                return self + "1"
+                uniqueName = self + "1"
+                return uniqueName
             }
             
-            return self + "\(lastCount + 1)"
+            uniqueName = self + "\(lastCount + 1)"
+            return uniqueName
         }
-        return self
+        uniqueName = self
+        return uniqueName
     }
     
     /// Get the Codable code from the provided JSON
