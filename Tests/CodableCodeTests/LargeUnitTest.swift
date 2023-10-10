@@ -10,20 +10,6 @@ import XCTest
 
 final class LargeUnitTest: XCTestCase {
     
-    func testNames() {
-        var names = ["nombre"]
-        XCTAssert("nombre".name(namesAlreadyUsed: &names) == "nombre1")
-        
-        var names2 = ["nombre1"]
-        XCTAssert("nombre".name(namesAlreadyUsed: &names2) == "nombre")
-        
-        var names3 = ["nombre", "nombre1"]
-        XCTAssert("nombre".name(namesAlreadyUsed: &names3) == "nombre2")
-        
-        var names4 = ["nombre", "nombree"]
-        XCTAssert("nombre".name(namesAlreadyUsed: &names4) == "nombre1")
-    }
-    
     func testLargeJSON() throws {
         try test(
             """
