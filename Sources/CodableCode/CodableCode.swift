@@ -348,7 +348,7 @@ struct SumType: Equatable, Hashable {
     
     static func implementation(sumType: SumType) -> [String] {
         var code = [String]()
-        code += ["enum \(sumType.name) {"]
+        code += ["enum \(sumType.name): Codable {"]
         sumType.relatedTypes.uniqued().forEach { relatedType in
             code += ["case \(relatedType.name.asSymbol)(\(relatedType.name))".idented]
         }

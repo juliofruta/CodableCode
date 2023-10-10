@@ -8,8 +8,8 @@
 import XCTest
 
 final class LargeUnitTest: XCTestCase {
-    func testLargeJSON() {
-        test(
+    func testLargeJSON() throws {
+        try test(
             """
             {
               "piano": "excited",

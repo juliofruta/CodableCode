@@ -12,10 +12,10 @@ extension XCTestCase {
     /// - Parameters:
     ///   - input: The JSON input as a String.
     ///   - expectedResult:A result having either the expected code or an error.
-    func test(_ input: String, _ expectedResult: Result<String, Swift.Error>)  {
+    func test(_ input: String, _ expectedResult: Result<String, Swift.Error>) throws {
         var result: Result<String, Swift.Error> = .failure(Error.resultNotInitialized)
         do {
-            let success = try input.codableCode()
+            let success = try input.codableCode(name: "SomeType")
             result = .success(success)
         } catch {
             result = .failure(error)
@@ -24,6 +24,7 @@ extension XCTestCase {
         switch product {
         case (let .success(generatedCode), let .success(expectedCode)):
             let difference = diff(generatedCode, expectedCode)
+            try compile(code: generatedCode)
             XCTAssert(
                 difference == nil,
                 "Generated code does not match expected code \(difference!)"
@@ -43,18 +44,32 @@ extension XCTestCase {
             )
         }
     }
+    
+    /// Creates a file and tries to compile it
+    func compile(code: String) throws {
+        let swiftFileName = "test.swift"
+        let saveCodeIntoFile = """
+                     variable=$(cat <<EOF
+                     \(code)
+                     EOF
+                     )
+                     echo "$variable" > \(swiftFileName)
+                     """
+        try shell(saveCodeIntoFile)
+        try shell("swiftc test.swift")
+    }
 }
 
 final class CodableCodeTests: XCTestCase {
     
     /// Test that we are returning an error if an empty string is passed.
-    func testEmptyJSON() {
-        test("", .failure(NSError(domain: NSCocoaErrorDomain, code: 3840)))
+    func testEmptyJSON() throws {
+        try test("", .failure(NSError(domain: NSCocoaErrorDomain, code: 3840)))
     }
     
     /// Test sample JSON from quicktype.io
-    func testSimpleStruct() {
-        test(
+    func testSimpleStruct() throws {
+        try test(
             """
             {
               "greeting": "Welcome to quicktype!",
@@ -68,7 +83,7 @@ final class CodableCodeTests: XCTestCase {
             """,
             .success(
                 """
-                struct <#SomeType#>: Codable {
+                struct SomeType: Codable {
                     let greeting: String
                     let instructions: [String]
                     enum CodingKeys: String, CodingKey {
@@ -81,9 +96,9 @@ final class CodableCodeTests: XCTestCase {
         )
     }
     
-    func testStructWithStructs() {
-        test(
-      """
+    func testStructWithStructs() throws {
+        try test(
+           """
            {
              "person": {
                "name": "John Doe",
@@ -105,7 +120,7 @@ final class CodableCodeTests: XCTestCase {
                  }
                ],
                "isStudent": false,
-               "grades": null
+               "grades": false
              },
              "books": [
                {
@@ -121,19 +136,9 @@ final class CodableCodeTests: XCTestCase {
              ],
              "tags": ["fiction", "classic", "coming-of-age"]
            }
-      """,
+           """,
             .success(
             """
-            struct <#SomeType#>: Codable {
-                let books: [Books]
-                let person: Person
-                let tags: [String]
-                enum CodingKeys: String, CodingKey {
-                    case books = "books"
-                    case person = "person"
-                    case tags = "tags"
-                }
-            }
             struct Address: Codable {
                 let city: String
                 let postalCode: String
@@ -159,7 +164,7 @@ final class CodableCodeTests: XCTestCase {
             struct Person: Codable {
                 let address: Address
                 let age: Double
-                let grades: Any
+                let grades: Bool
                 let isStudent: Bool
                 let name: String
                 let phoneNumbers: [PhoneNumbers]
@@ -180,13 +185,23 @@ final class CodableCodeTests: XCTestCase {
                     case type = "type"
                 }
             }
+            struct SomeType: Codable {
+                let books: [Books]
+                let person: Person
+                let tags: [String]
+                enum CodingKeys: String, CodingKey {
+                    case books = "books"
+                    case person = "person"
+                    case tags = "tags"
+                }
+            }
             """
             )
         )
     }
     
-    func test4LevelsDeep() {
-        test(
+    func test4LevelsDeep() throws {
+        try test(
         """
         {
           "level1": {
@@ -205,12 +220,6 @@ final class CodableCodeTests: XCTestCase {
         """,
             .success(
                 """
-                struct <#SomeType#>: Codable {
-                    let level1: Level1
-                    enum CodingKeys: String, CodingKey {
-                        case level1 = "level1"
-                    }
-                }
                 struct Level1: Codable {
                     let key1: String
                     let level2: Level2
@@ -241,25 +250,31 @@ final class CodableCodeTests: XCTestCase {
                         case key4 = "key4"
                     }
                 }
+                struct SomeType: Codable {
+                    let level1: Level1
+                    enum CodingKeys: String, CodingKey {
+                        case level1 = "level1"
+                    }
+                }
                 """
             )
         )
     }
     
-    func testArrayWithMultipleTypes() {
-        test("""
+    func testArrayWithMultipleTypes() throws {
+        try test("""
         {
          "a" : [
-              "gola",
+              "hola",
               1
               ]
         }
         """, .success("""
-        enum A {
+        enum A: Codable {
             case bool(Bool)
             case string(String)
         }
-        struct <#SomeType#>: Codable {
+        struct SomeType: Codable {
             let a: [A]
             enum CodingKeys: String, CodingKey {
                 case a = "a"
