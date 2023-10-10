@@ -439,6 +439,29 @@ extension String {
         }
         return dictionary
     }
+   
+    func name(namesAlreadyUsed: inout [String]) -> String {
+        guard !namesAlreadyUsed.contains(self) else {
+            
+            let lastCount = namesAlreadyUsed
+                .filter { name in
+                    return name.hasPrefix(self) // filter to check if we have the prefix
+                }
+                .map {
+                    $0.dropFirst(self.count)    // remove the prefix and leave only a suffix
+                }
+                .compactMap { Int($0) }         // try to turn the suffix into a number
+                .sorted()                       // sort it
+                .last                           // get the last element
+                
+            guard let lastCount = lastCount else {
+                return self + "1"
+            }
+            
+            return self + "\(lastCount + 1)"
+        }
+        return self
+    }
     
     /// Get the Codable code from the provided JSON
     /// - Parameter name: The name of the struct, if no struct is provided you'll get a placeholder of the type <#SomeType#>
