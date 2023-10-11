@@ -167,7 +167,7 @@ struct ProductType: Equatable, Hashable {
                 }
                 return .init(symbol: key, typeName: name, isOptional: false, relatedType: relatedType)
             }
-        return .init(name: name, properties: properties)
+        return .init(name: name.uniqued(typeNamesInUse: &typeNamesInUse), properties: properties)
     }
     
     /// Infers a product type from the array of json objects
