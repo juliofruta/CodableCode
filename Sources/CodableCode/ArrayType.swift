@@ -15,7 +15,7 @@ struct ArrayType: Equatable, Hashable {
     init(jsonObjects: [Any], name: String, typeNamesInUse: inout [String], config: UseOptionalsOrEnums = .enums) throws {
         var typeOptions = [TypeOption]()
         for jsonObject in jsonObjects {
-            guard let typeOption = try TypeOption.type(for: jsonObject, typeNamesInUse: &typeNamesInUse, name: name.asType.uniqued(typeNamesInUse: &typeNamesInUse)) else {
+            guard let typeOption = try TypeOption.type(for: jsonObject, typeNamesInUse: &typeNamesInUse, name: name.asType) else {
                 fatalError()
             }
             typeOptions.append(typeOption)
