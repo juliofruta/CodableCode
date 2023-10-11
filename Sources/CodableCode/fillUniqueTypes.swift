@@ -20,10 +20,8 @@ func fillUniqueTypes(root: TypeOption, uniqueTypes: inout [UniqueTypeKey: TypeOp
         sumType.relatedTypes.forEach { option in
             fillUniqueTypes(root: option, uniqueTypes: &uniqueTypes)
         }
-        break
     case let .arrayType(arrayType):
         fillUniqueTypes(root: arrayType.relatedType, uniqueTypes: &uniqueTypes)
-        break
     case .anyType(_):
         // nothing to do here
         break
