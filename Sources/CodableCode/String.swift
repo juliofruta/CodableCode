@@ -43,19 +43,19 @@ extension String {
     
     /// Returns a numeric sequenced name for example:
     /// 
-    /// - Parameter namesAlreadyUsed: an list of type names already used it will be modified to include the nw name.
+    /// - Parameter typeNamesInUse: an list of type names already used it will be modified to include the nw name.
     /// - Returns: A new sugested name
-    func uniqued(namesAlreadyUsed: inout [String]) -> String {
+    func uniqued(typeNamesInUse: inout [String]) -> String {
         
         let uniqueName: String
         
         defer {
-            namesAlreadyUsed.append(uniqueName)
+            typeNamesInUse.append(uniqueName)
         }
         
-        guard !namesAlreadyUsed.contains(self) else {
+        guard !typeNamesInUse.contains(self) else {
             
-            let lastCount = namesAlreadyUsed
+            let lastCount = typeNamesInUse
                 .filter { name in
                     return name.hasPrefix(self)    // filter to check if we have the prefix
                 }

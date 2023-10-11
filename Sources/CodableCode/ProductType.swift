@@ -119,7 +119,7 @@ struct ProductType: Equatable, Hashable {
         return code
     }
     
-    init(name: String, properties: [Property]) {
+    private init(name: String, properties: [Property]) {
         self.name = name
         self.properties = properties
     }
