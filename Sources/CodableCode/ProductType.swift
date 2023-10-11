@@ -124,7 +124,7 @@ struct ProductType: Equatable, Hashable {
         self.properties = properties
     }
     
-    static func productType(name: String, dictionary: [String: Any]) throws -> ProductType {
+    static func productType(name: String, dictionary: [String: Any], typeNamesInUse: inout [String]) throws -> ProductType {
         let properties = try dictionary
             .sorted(by: { $0.0 < $1.0 })
             .map { (pair) -> ProductType.Property in
@@ -145,14 +145,16 @@ struct ProductType: Equatable, Hashable {
                 case let jsonObject as [String: Any]:
                     let productType = try ProductType.productType(
                         name: key,
-                        dictionary: jsonObject
+                        dictionary: jsonObject,
+                        typeNamesInUse: &typeNamesInUse
                     )
-                    name = productType.name
+                    name = productType.name.uniqued(typeNamesInUse: &typeNamesInUse)
                     relatedType = .productType(productType)
                 case let jsonObjects as [Any]:
                     let arrayType = try ArrayType(
                         jsonObjects: jsonObjects,
-                        name: key.asType
+                        name: key.asType,
+                        typeNamesInUse: &typeNamesInUse
                     )
                     name = arrayType.name
                     relatedType = .arrayType(arrayType)
@@ -173,8 +175,8 @@ struct ProductType: Equatable, Hashable {
     ///   - anyArray: Array of JSON Objects
     ///   - key: Key for the codable type
     /// - Returns: An optional codable type for the JSON objects
-    init?(jsonObjects: [Any], key: String) throws {
-        let arrayOfTypes = try jsonObjects.compactMap { try TypeOption.type(for: $0) }
+    init?(jsonObjects: [Any], key: String, typeNamesInUse: inout [String]) throws {
+        let arrayOfTypes = try jsonObjects.compactMap { try TypeOption.type(for: $0, typeNamesInUse: &typeNamesInUse) }
         let setOfTypes = Set<TypeOption>(arrayOfTypes)
         let productTypes = setOfTypes
             .compactMap { (type) -> ProductType? in

@@ -18,6 +18,9 @@ extension String {
         // so we remove the "[]" from the string
         string.removeAll { $0 == "[" || $0 == "]" }
         
+        // Remove spaces from keys, to avoid build error
+        string = string.replacingOccurrences(of: " ", with: "_")
+        
         let firstChar = string.removeFirst()
         return firstChar.lowercased() + string
     }
@@ -83,7 +86,10 @@ extension String {
     /// - Returns: The codable code as a string.
     public func codableCode(name: String = "<#SomeType#>") throws -> String {
         let dictionary = try dictionary()
-        let productType = try ProductType.productType(name: name, dictionary: dictionary)
+        
+        var typeNamesInUse = [String]() // initializing typeNames as empty
+        
+        let productType = try ProductType.productType(name: name, dictionary: dictionary, typeNamesInUse: &typeNamesInUse)
         return productType.code
     }
 }
