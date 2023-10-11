@@ -219,7 +219,7 @@ struct ProductType: Equatable, Hashable {
                     relatedType: key.relatedType
                 )
         }
-        self.name = key.asType
+        self.name = key.asType.uniqued(typeNamesInUse: &typeNamesInUse)
         self.properties = propertiesWithOptionalSupport
     }
 }
