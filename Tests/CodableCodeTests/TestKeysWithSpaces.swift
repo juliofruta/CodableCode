@@ -1,9 +1,9 @@
 import XCTest
 @testable import CodableCode
 
-final class RandomUnitTest: XCTestCase {
+final class TestKeysWithSpaces: XCTestCase {
     
-    func keysWithSpaces() throws {
+    func testKeysWithSpaces() throws {
         try test(
             """
             {
