@@ -89,7 +89,7 @@ extension String {
         
         var typeNamesInUse = [String]() // initializing typeNames as empty
         
-        let productType = try ProductType.productType(name: name, dictionary: dictionary, typeNamesInUse: &typeNamesInUse)
+        let productType = try ProductType.productType(name: name.uniqued(typeNamesInUse: &typeNamesInUse), dictionary: dictionary, typeNamesInUse: &typeNamesInUse)
         return productType.code
     }
 }
