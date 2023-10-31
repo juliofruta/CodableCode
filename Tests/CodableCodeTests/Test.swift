@@ -8,6 +8,14 @@ extension XCTestCase {
         case resultNotInitialized
     }
     
+    
+    /// Tests a JSON File
+    /// - Parameter file: the path of the JSON file to test
+    func test(file: String, _ expectedResult: Result<String, Swift.Error>) throws {
+        let string = try String.init(contentsOfFile: file)
+        try test(string, expectedResult)
+    }
+    
     /// Tests that the JSON input generates the expected code. You can check for the diff in case this fails.
     /// - Parameters:
     ///   - input: The JSON input as a String.

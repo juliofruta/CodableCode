@@ -26,7 +26,11 @@ let package = Package(
             name: "CodableCode",
             dependencies: [
                 .product(name: "Algorithms", package: "swift-algorithms"),
-            ]),
+            ],
+            resources: [
+                .copy("long.json")
+            ]
+        ),
         .testTarget(
             name: "CodableCodeTests",
             dependencies: [
@@ -34,7 +38,7 @@ let package = Package(
                 .productItem(name: "CustomDump", package: "swift-custom-dump")
             ], 
             resources: [
-           
+//                .copy("")
             ]
         ),
     ]
