@@ -1,3 +1,6 @@
+
+typealias UniqueTypes = [UniqueTypeKey: TypeOption]
+
 enum UniqueTypeKey: Hashable {
     case structKey([ProductType.Property])
     case sumKey(relatedTypes: [TypeOption])

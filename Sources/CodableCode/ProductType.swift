@@ -1,7 +1,5 @@
 import Foundation
 
-typealias UniqueTypes = [UniqueTypeKey: TypeOption]
-
 /// A representation of a product type
 /// This is a struct that reptresents a product type, which can be either a class, struct or actor.
 /// For example:
