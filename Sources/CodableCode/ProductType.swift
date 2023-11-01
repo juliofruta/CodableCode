@@ -1,4 +1,7 @@
 import Foundation
+
+typealias UniqueTypes = [UniqueTypeKey: TypeOption]
+
 /// A representation of a product type
 /// This is a struct that reptresents a product type, which can be either a class, struct or actor.
 /// For example:
@@ -29,13 +32,13 @@ struct ProductType: Equatable, Hashable {
     let properties: [Property]
     
     /// Self and unique sub-types used in the struct
-    var selfAndRelatedSubtypes: [UniqueTypeKey: TypeOption] {
-        var uniqueTypes = [UniqueTypeKey: TypeOption]()
+    var selfAndRelatedSubtypes: UniqueTypes {
+        var uniqueTypes = UniqueTypes()
         fillUniqueTypes(root: .productType(self), uniqueTypes: &uniqueTypes)
         return uniqueTypes
     }
     
-    static func implementation(productType: ProductType, uniqueTypes: [UniqueTypeKey: TypeOption]) -> [String] {
+    static func implementation(productType: ProductType, uniqueTypes: UniqueTypes) -> [String] {
         var implementation = [String]()
         implementation += ["\(productType.structOrClass) \(productType.name.asType): Codable {"]
         

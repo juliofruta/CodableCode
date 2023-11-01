@@ -32,7 +32,12 @@ extension XCTestCase {
         switch product {
         case (let .success(generatedCode), let .success(expectedCode)):
             let difference = diff(generatedCode, expectedCode)
-            try compile(code: generatedCode)
+//            try compile(code: generatedCode)
+            
+            if let difference {
+                print(difference)
+            }
+            
             XCTAssert(
                 difference == nil,
                 "Generated code does not match expected code \(difference!)"

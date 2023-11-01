@@ -3,7 +3,7 @@ enum UniqueTypeKey: Hashable {
     case sumKey(relatedTypes: [TypeOption])
 }
 
-func fillUniqueTypes(root: TypeOption, uniqueTypes: inout [UniqueTypeKey: TypeOption]) {
+func fillUniqueTypes(root: TypeOption, uniqueTypes: inout UniqueTypes) {
     switch root {
     case .swiftType(_):
         // nothing to do here
