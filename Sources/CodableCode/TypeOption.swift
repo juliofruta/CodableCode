@@ -31,6 +31,9 @@ indirect enum TypeOption: Hashable, Equatable, Comparable {
     /// - Parameter jsonObject: Any object that
     /// - Returns: Either a swiftType or a Codable Type
     static func type(for jsonObject: Any, name: String = "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON") throws -> TypeOption? {
+        
+        var memoizedTypes = MemoizedTypes() // TODO: Change this?
+        
         var typeOption: TypeOption?
         switch jsonObject {
         case _ as String:
@@ -44,7 +47,6 @@ indirect enum TypeOption: Hashable, Equatable, Comparable {
         case _ as Int:
             typeOption = .swiftType(.Int)
         case let dictionary as [String: Any]:
-            var memoizedTypes = MemoizedTypes() // TODO: Change this?
             let productType = try ProductType.productType(
                 name: name,
                 dictionary: dictionary,
@@ -54,7 +56,8 @@ indirect enum TypeOption: Hashable, Equatable, Comparable {
         case let jsonObjects as [Any]:
             let arrayType = try ArrayType(
                 jsonObjects: jsonObjects,
-                name: name
+                name: name,
+                memoizedTypes: &memoizedTypes
             )
             typeOption = .arrayType(arrayType)
         default:

@@ -12,7 +12,7 @@ struct ArrayType: Equatable, Hashable {
         case enums // When an item is on an array element and is not in the next treats it as an enum
     }
     
-    init(jsonObjects: [Any], name: String, config: UseOptionalsOrEnums = .enums) throws {
+    init(jsonObjects: [Any], name: String, config: UseOptionalsOrEnums = .enums, memoizedTypes: inout MemoizedTypes) throws {
         var typeOptions = [TypeOption]()
         for jsonObject in jsonObjects {
             guard let typeOption = try TypeOption.type(for: jsonObject, name: name.asType) else {

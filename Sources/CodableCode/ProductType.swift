@@ -154,7 +154,8 @@ struct ProductType: Equatable, Hashable {
                 case let jsonObjects as [Any]:
                     let arrayType = try ArrayType(
                         jsonObjects: jsonObjects,
-                        name: key.asType
+                        name: key.asType,
+                        memoizedTypes: &memoizedTypes
                     )
                     name = arrayType.name
                     relatedType = .arrayType(arrayType)
