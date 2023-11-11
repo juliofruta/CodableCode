@@ -30,13 +30,13 @@ struct ProductType: Equatable, Hashable {
     let properties: [Property]
     
     /// Self and unique sub-types used in the struct
-    var selfAndRelatedSubtypes: UniqueTypes {
-        var uniqueTypes = UniqueTypes()
-        recursiveFunction(typeOption: .productType(self), uniqueTypes: &uniqueTypes)
-        return uniqueTypes
+    var memoizedTypes: MemoizedTypes {
+        var types = MemoizedTypes()
+        add(.productType(self), to: &types)
+        return types
     }
     
-    static func implementation(productType: ProductType, uniqueTypes: UniqueTypes) -> [String] {
+    static func implementation(productType: ProductType, memoizedTypes: MemoizedTypes) -> [String] {
         var implementation = [String]()
         implementation += ["\(productType.structOrClass) \(productType.name.asType): Codable {"]
         
@@ -46,7 +46,7 @@ struct ProductType: Equatable, Hashable {
                 // get the name from the uniquetype list.
                 let typeName: String
                 if case let .productType(relatedProductType) = property.relatedType,
-                   case let .productType(relatedProductType2) = uniqueTypes[.structKey(relatedProductType.properties)] {
+                   case let .productType(relatedProductType2) = memoizedTypes[.structKey(relatedProductType.properties)] {
                     typeName = relatedProductType2.name
                 } else {
                     typeName = property.typeName
@@ -86,7 +86,7 @@ struct ProductType: Equatable, Hashable {
     
     /// Lines of code of all the structs to be printed.
     var linesOfCode: [String] {
-        let structs = selfAndRelatedSubtypes
+        let structs = memoizedTypes
             .allTypes
             .map { (typeOption) -> String in
                 switch typeOption {
@@ -95,7 +95,7 @@ struct ProductType: Equatable, Hashable {
                     break
                 case let .productType(productType):
                     return ProductType
-                        .implementation(productType: productType, uniqueTypes: selfAndRelatedSubtypes)
+                        .implementation(productType: productType, memoizedTypes: memoizedTypes)
                         .joined(separator: "\n")
                 case let .sumType(sumType):
                     return SumType.implementation(sumType: sumType)

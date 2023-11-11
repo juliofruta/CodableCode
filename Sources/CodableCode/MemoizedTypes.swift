@@ -1,5 +1,5 @@
 
-struct UniqueTypes {
+struct MemoizedTypes {
     
 // what i want here is to have unique names as well.
     
@@ -35,25 +35,29 @@ enum Cases: Hashable {
     case sumKey(relatedTypes: [TypeOption])
 }
 
-func recursiveFunction(typeOption: TypeOption, uniqueTypes: inout UniqueTypes) {
+/// Adds the typeOption and it's tree to the store of unique types.
+/// - Parameters:
+///   - typeOption: The type option tree to be added.
+///   - memoizedTypes: The type to which is being added.
+func add(_ typeOption: TypeOption, to memoizedTypes: inout MemoizedTypes) {
     switch typeOption {
     case .swiftType(_):
         // nothing to do here
         break
     case let .productType(productType):
-        uniqueTypes[.structKey(productType.properties)] = .productType(productType)
+        memoizedTypes[.structKey(productType.properties)] = .productType(productType)
         productType.properties.forEach { property in
             if let relatedType = property.relatedType {
-                recursiveFunction(typeOption: relatedType, uniqueTypes: &uniqueTypes)
+                add(relatedType, to: &memoizedTypes)
             }
         }
     case let .sumType(sumType):
-        uniqueTypes[.sumKey(relatedTypes: sumType.relatedTypes)] = .sumType(sumType) // change key to cases instead of uuid or properties
+        memoizedTypes[.sumKey(relatedTypes: sumType.relatedTypes)] = .sumType(sumType) // change key to cases instead of uuid or properties
         sumType.relatedTypes.forEach { option in
-            recursiveFunction(typeOption: option, uniqueTypes: &uniqueTypes)
+            add(option, to: &memoizedTypes)
         }
     case let .arrayType(arrayType):
-        recursiveFunction(typeOption: arrayType.relatedType, uniqueTypes: &uniqueTypes)
+        add(arrayType.relatedType, to: &memoizedTypes)
     case .anyType(_):
         // nothing to do here
         break
