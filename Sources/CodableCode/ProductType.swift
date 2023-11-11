@@ -98,7 +98,8 @@ struct ProductType: Equatable, Hashable {
                         .implementation(productType: productType, memoizedTypes: memoizedTypes)
                         .joined(separator: "\n")
                 case let .sumType(sumType):
-                    return SumType.implementation(sumType: sumType)
+                    return SumType
+                        .implementation(sumType: sumType, memoizedTypes: memoizedTypes)
                         .joined(separator: "\n")
                 case .arrayType(_):
                     fatalError()

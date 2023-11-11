@@ -8,7 +8,7 @@ struct SumType: Equatable, Hashable {
         self.relatedTypes = Array(typeOptions.uniqued().sorted())
     }
     
-    static func implementation(sumType: SumType) -> [String] {
+    static func implementation(sumType: SumType, memoizedTypes: MemoizedTypes) -> [String] {
         var code = [String]()
         code += ["enum \(sumType.name): Codable {"]
         sumType.relatedTypes.uniqued().forEach { relatedType in
