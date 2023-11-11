@@ -176,8 +176,8 @@ struct ProductType: Equatable, Hashable {
     ///   - anyArray: Array of JSON Objects
     ///   - key: Key for the codable type
     /// - Returns: An optional codable type for the JSON objects
-    init?(jsonObjects: [Any], key: String, typeNamesInUse: inout [String]) throws {
-        let arrayOfTypes = try jsonObjects.compactMap { try TypeOption.type(for: $0) }
+    init?(jsonObjects: [Any], key: String, memoizedTypes: inout MemoizedTypes) throws {
+        let arrayOfTypes = try jsonObjects.compactMap { try TypeOption.type(for: $0, memoizedTypes: &memoizedTypes) }
         let setOfTypes = Set<TypeOption>(arrayOfTypes)
         let productTypes = setOfTypes
             .compactMap { (type) -> ProductType? in
@@ -220,7 +220,7 @@ struct ProductType: Equatable, Hashable {
                     relatedType: key.relatedType
                 )
         }
-        self.name = key.asType.uniqued(typeNamesInUse: &typeNamesInUse)
+        self.name = key.asType
         self.properties = propertiesWithOptionalSupport
     }
 }
