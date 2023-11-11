@@ -1,8 +1,7 @@
 
 struct MemoizedTypes {
     
-// what i want here is to have unique names as well.
-    
+    // what i want here is to have unique names as well.
     private var typesIndexedByCases: [Cases: TypeOption]
     
     init() {
