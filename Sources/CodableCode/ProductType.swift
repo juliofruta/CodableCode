@@ -125,7 +125,7 @@ struct ProductType: Equatable, Hashable {
         self.properties = properties
     }
     
-    static func productType(name: String, dictionary: [String: Any]) throws -> ProductType {
+    static func productType(name: String, dictionary: [String: Any], memoizedTypes: inout MemoizedTypes) throws -> ProductType {
         let properties = try dictionary
             .sorted(by: { $0.0 < $1.0 })
             .map { (pair) -> ProductType.Property in
@@ -146,7 +146,8 @@ struct ProductType: Equatable, Hashable {
                 case let jsonObject as [String: Any]:
                     let productType = try ProductType.productType(
                         name: key,
-                        dictionary: jsonObject
+                        dictionary: jsonObject,
+                        memoizedTypes: &memoizedTypes
                     )
                     name = productType.name
                     relatedType = .productType(productType)

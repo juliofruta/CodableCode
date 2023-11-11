@@ -87,7 +87,11 @@ extension String {
     public func codableCode(name: String = "<#SomeType#>") throws -> String {
         let dictionary = try dictionary()
         var memoizedTypes = MemoizedTypes()
-        let productType = try ProductType.productType(name: name, dictionary: dictionary)
+        let productType = try ProductType.productType(
+            name: name,
+            dictionary: dictionary,
+            memoizedTypes: &memoizedTypes
+        )
         return productType.code
     }
 }

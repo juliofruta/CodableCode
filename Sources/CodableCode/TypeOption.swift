@@ -44,9 +44,11 @@ indirect enum TypeOption: Hashable, Equatable, Comparable {
         case _ as Int:
             typeOption = .swiftType(.Int)
         case let dictionary as [String: Any]:
+            var memoizedTypes = MemoizedTypes() // TODO: Change this?
             let productType = try ProductType.productType(
                 name: name,
-                dictionary: dictionary
+                dictionary: dictionary,
+                memoizedTypes: &memoizedTypes
             )
             typeOption = .productType(productType)
         case let jsonObjects as [Any]:
