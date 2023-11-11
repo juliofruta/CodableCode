@@ -30,7 +30,11 @@ indirect enum TypeOption: Hashable, Equatable, Comparable {
     /// Returns Swift Type or Codable type
     /// - Parameter jsonObject: Any object that
     /// - Returns: Either a swiftType or a Codable Type
-    static func type(for jsonObject: Any, name: String = "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON", memoizedTypes: inout MemoizedTypes) throws -> TypeOption? {
+    static func type(
+        for jsonObject: Any,
+        name: String = "TYPE_IMPLEMENTATION_USED_FOR_COMPARISON",
+        memoizedTypes: inout MemoizedTypes
+    ) throws -> TypeOption? {
         var typeOption: TypeOption?
         switch jsonObject {
         case _ as String:
