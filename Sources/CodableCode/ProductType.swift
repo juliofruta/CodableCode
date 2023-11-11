@@ -32,7 +32,7 @@ struct ProductType: Equatable, Hashable {
     /// Self and unique sub-types used in the struct
     var selfAndRelatedSubtypes: UniqueTypes {
         var uniqueTypes = UniqueTypes()
-        fillUniqueTypes(root: .productType(self), uniqueTypes: &uniqueTypes)
+        recursiveFunction(typeOption: .productType(self), uniqueTypes: &uniqueTypes)
         return uniqueTypes
     }
     
@@ -87,9 +87,8 @@ struct ProductType: Equatable, Hashable {
     /// Lines of code of all the structs to be printed.
     var linesOfCode: [String] {
         let structs = selfAndRelatedSubtypes
-            .map { (pair) -> String in
-                let (_, typeOption) = pair
-               
+            .allTypes
+            .map { (typeOption) -> String in
                 switch typeOption {
                 case .swiftType(_):
                     fatalError()
