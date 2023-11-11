@@ -12,10 +12,10 @@ struct ArrayType: Equatable, Hashable {
         case enums // When an item is on an array element and is not in the next treats it as an enum
     }
     
-    init(jsonObjects: [Any], name: String, typeNamesInUse: inout [String], config: UseOptionalsOrEnums = .enums) throws {
+    init(jsonObjects: [Any], name: String, config: UseOptionalsOrEnums = .enums) throws {
         var typeOptions = [TypeOption]()
         for jsonObject in jsonObjects {
-            guard let typeOption = try TypeOption.type(for: jsonObject, typeNamesInUse: &typeNamesInUse, name: name.asType) else {
+            guard let typeOption = try TypeOption.type(for: jsonObject, name: name.asType) else {
                 fatalError()
             }
             typeOptions.append(typeOption)
@@ -30,7 +30,7 @@ struct ArrayType: Equatable, Hashable {
                 self.relatedType = .sumType(.init(typeOptions: [], name: ""))
                 fatalError("Not supported")
             case .enums:
-                self.relatedType = .sumType(.init(typeOptions: typeOptions, name: name.asType.uniqued(typeNamesInUse: &typeNamesInUse)))
+                self.relatedType = .sumType(.init(typeOptions: typeOptions, name: name.asType))
             }
         }
     }

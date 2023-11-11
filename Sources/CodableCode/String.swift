@@ -86,10 +86,8 @@ extension String {
     /// - Returns: The codable code as a string.
     public func codableCode(name: String = "<#SomeType#>") throws -> String {
         let dictionary = try dictionary()
-        
-        var typeNamesInUse = [String]() // initializing typeNames as empty
-        
-        let productType = try ProductType.productType(name: name.uniqued(typeNamesInUse: &typeNamesInUse), dictionary: dictionary, typeNamesInUse: &typeNamesInUse)
+//        var memoizedTypes = MemoizedTypes()
+        let productType = try ProductType.productType(name: name, dictionary: dictionary)
         return productType.code
     }
 }
