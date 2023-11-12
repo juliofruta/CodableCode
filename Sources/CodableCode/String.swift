@@ -92,6 +92,7 @@ extension String {
             dictionary: dictionary,
             memoizedTypes: &memoizedTypes
         )
+        add(.productType(productType), to: &memoizedTypes)
         return productType.code(memoizedTypes: &memoizedTypes)
     }
 }
