@@ -41,17 +41,8 @@ struct ProductType: Equatable, Hashable {
         // create – let <symbol>: <type><optional-syntactic-suggar>
         let properties = productType.properties
             .map { (property) -> String in
-                // get the name from the uniquetype list.
-                let typeName: String
-                if case let .productType(relatedProductType) = property.relatedType,
-                   case let .productType(relatedProductType2) = memoizedTypes[.structKey(relatedProductType.properties)] {
-                    typeName = relatedProductType2.name
-                } else {
-                    typeName = property.typeName
-                }
-                
                 let optionalSintacticSuggar = property.isOptional ? "?": ""
-                return "\(property.letOrVar) \(property.symbol.asSymbol): \(typeName.asType)\(optionalSintacticSuggar)"
+                return "\(property.letOrVar) \(property.symbol.asSymbol): \(property.typeName.asType)\(optionalSintacticSuggar)" // TODO: Calculate the actual property.typeName using the memoized types.
             }
             .sorted()
             .reduce([String]()) { partialResult, line in
