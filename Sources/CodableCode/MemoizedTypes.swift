@@ -1,6 +1,18 @@
 
 struct MemoizedTypes {
     
+    /// What makes a type unique?
+    /// Types are special cases of sets. Subdivided in two. Sum types and Product types.
+    /// For Sum types a Sum will be the same as another is all the related cases are the same
+    /// And for the struct the same.
+    enum Cases: Hashable {
+        // The properties are the keys of the struct.
+        case structKey([ProductType.Property])
+        
+        // The related types are the keys of the enum.
+        case sumKey(relatedTypes: [TypeOption])
+    }
+    
     // what i want here is to have unique names as well.
     private var typesIndexedByCases: [Cases: TypeOption]
     
@@ -22,17 +34,7 @@ struct MemoizedTypes {
     }
 }
 
-/// What makes a type unique?
-/// Types are special cases of sets. Subdivided in two. Sum types and Product types.
-/// For Sum types a Sum will be the same as another is all the related cases are the same
-/// And for the struct the same.
-enum Cases: Hashable {
-    // The properties are the keys of the struct.
-    case structKey([ProductType.Property])
-    
-    // The related types are the keys of the enum.
-    case sumKey(relatedTypes: [TypeOption])
-}
+
 
 /// Adds the typeOption and it's tree to the store of unique types.
 /// - Parameters:
