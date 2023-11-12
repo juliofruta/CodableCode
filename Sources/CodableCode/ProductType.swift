@@ -29,6 +29,11 @@ struct ProductType: Equatable, Hashable {
     /// An array of the properties in the type
     let properties: [Property]
     
+    /// Get the lines of code of a product type
+    /// - Parameters:
+    ///   - productType: The product type
+    ///   - memoizedTypes: memoized types
+    /// - Returns: An array with the lines of code of the product type.
     static func implementation(productType: ProductType, memoizedTypes: inout MemoizedTypes) -> [String] {
         var implementation = [String]()
         implementation += ["\(productType.structOrClass) \(productType.name.asType): Codable {"]
