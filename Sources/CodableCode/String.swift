@@ -92,7 +92,7 @@ extension String {
             dictionary: dictionary,
             memoizedTypes: &memoizedTypes
         )
-        return productType.code
+        return productType.code(memoizedTypes: &memoizedTypes)
     }
 }
 

@@ -36,7 +36,7 @@ struct ProductType: Equatable, Hashable {
         return types
     }
     
-    static func implementation(productType: ProductType, memoizedTypes: MemoizedTypes) -> [String] {
+    static func implementation(productType: ProductType, memoizedTypes: inout MemoizedTypes) -> [String] {
         var implementation = [String]()
         implementation += ["\(productType.structOrClass) \(productType.name.asType): Codable {"]
         
@@ -85,7 +85,7 @@ struct ProductType: Equatable, Hashable {
     }
     
     /// Lines of code of all the structs to be printed.
-    var linesOfCode: [String] {
+    func linesOfCode(memoizedTypes: inout MemoizedTypes) -> [String] {
         let structs = memoizedTypes
             .allTypes
             .map { (typeOption) -> String in
@@ -95,11 +95,11 @@ struct ProductType: Equatable, Hashable {
                     break
                 case let .productType(productType):
                     return ProductType
-                        .implementation(productType: productType, memoizedTypes: memoizedTypes)
+                        .implementation(productType: productType, memoizedTypes: &memoizedTypes)
                         .joined(separator: "\n")
                 case let .sumType(sumType):
                     return SumType
-                        .implementation(sumType: sumType, memoizedTypes: memoizedTypes)
+                        .implementation(sumType: sumType, memoizedTypes: &memoizedTypes)
                         .joined(separator: "\n")
                 case .arrayType(_):
                     fatalError()
@@ -115,8 +115,8 @@ struct ProductType: Equatable, Hashable {
         return linesOfCode
     }
     
-    var code: String {
-        let code = linesOfCode.joined(separator: "\n")
+    func code(memoizedTypes: inout MemoizedTypes) -> String {
+        let code = linesOfCode(memoizedTypes: &memoizedTypes).joined(separator: "\n")
         return code
     }
     
