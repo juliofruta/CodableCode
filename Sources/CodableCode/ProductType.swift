@@ -73,42 +73,6 @@ struct ProductType: Equatable, Hashable {
         return implementation
     }
     
-    /// Lines of code of all the structs to be printed.
-    func linesOfCode(memoizedTypes: inout MemoizedTypes) -> [String] {
-        let structs = memoizedTypes
-            .allTypes
-            .map { (typeOption) -> String in
-                switch typeOption {
-                case .swiftType(_):
-                    fatalError()
-                    break
-                case let .productType(productType):
-                    return ProductType
-                        .implementation(productType: productType, memoizedTypes: &memoizedTypes)
-                        .joined(separator: "\n")
-                case let .sumType(sumType):
-                    return SumType
-                        .implementation(sumType: sumType, memoizedTypes: &memoizedTypes)
-                        .joined(separator: "\n")
-                case .arrayType(_):
-                    fatalError()
-                    break
-                case .anyType(_):
-                    fatalError()
-                    break
-                }
-            }
-        let linesOfCode = structs
-            .uniqued() // We don't want to repeat code
-            .sorted()  // We want to sort the types alphabetically
-        return linesOfCode
-    }
-    
-    func code(memoizedTypes: inout MemoizedTypes) -> String {
-        let code = linesOfCode(memoizedTypes: &memoizedTypes).joined(separator: "\n")
-        return code
-    }
-    
     private init(name: String, properties: [Property]) {
         self.name = name
         self.properties = properties

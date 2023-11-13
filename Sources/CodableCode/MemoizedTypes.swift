@@ -32,6 +32,43 @@ struct MemoizedTypes {
     var allTypes: [TypeOption] {
         return typesIndexedByCases.values.map { $0 }
     }
+    
+    /// Lines of code of all the structs to be printed.
+    func linesOfCode() -> [String] {
+        var memoizedTypes = self
+        let structs = memoizedTypes
+            .allTypes
+            .map { (typeOption) -> String in
+                switch typeOption {
+                case .swiftType(_):
+                    fatalError()
+                    break
+                case let .productType(productType):
+                    return ProductType
+                        .implementation(productType: productType, memoizedTypes: &memoizedTypes)
+                        .joined(separator: "\n")
+                case let .sumType(sumType):
+                    return SumType
+                        .implementation(sumType: sumType, memoizedTypes: &memoizedTypes)
+                        .joined(separator: "\n")
+                case .arrayType(_):
+                    fatalError()
+                    break
+                case .anyType(_):
+                    fatalError()
+                    break
+                }
+            }
+        let linesOfCode = structs
+            .uniqued() // We don't want to repeat code
+            .sorted()  // We want to sort the types alphabetically
+        return linesOfCode
+    }
+
+    func code() -> String {
+        let code = linesOfCode().joined(separator: "\n")
+        return code
+    }
 }
 
 

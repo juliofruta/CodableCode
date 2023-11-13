@@ -93,7 +93,7 @@ extension String {
             memoizedTypes: &memoizedTypes
         )
         add(.productType(productType), to: &memoizedTypes)
-        return productType.code(memoizedTypes: &memoizedTypes)
+        return memoizedTypes.code()
     }
 }
 
