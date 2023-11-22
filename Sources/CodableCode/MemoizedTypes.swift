@@ -23,7 +23,7 @@ struct MemoizedTypes {
         typesIndexedByCases = .init()
     }
     
-    subscript(_ key: Cases) -> TypeOption? {
+    fileprivate subscript(_ key: Cases) -> TypeOption? {
         set {
             typesIndexedByCases[key] = newValue
         }
