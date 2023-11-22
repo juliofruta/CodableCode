@@ -2,7 +2,10 @@
 struct MemoizedTypes {
     
     /// What makes a type unique?
-    /// Types are special cases of sets. Subdivided in two. Sum types and Product types.
+    /// Types are special cases of sets. 
+    /// Subdivided in two.
+    /// - Sum types
+    /// - Product types.
     /// For Sum types a Sum will be the same as another is all the related cases are the same
     /// And for the struct the same.
     enum Cases: Hashable {
@@ -83,6 +86,7 @@ func add(_ typeOption: TypeOption, to memoizedTypes: inout MemoizedTypes) {
         // nothing to do here
         break
     case let .productType(productType):
+        // Añade el product type al memoized types.
         memoizedTypes[.structKey(productType.properties)] = .productType(productType)
         productType.properties.forEach { property in
             if let relatedType = property.relatedType {
